@@ -12,6 +12,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 
 from marswalk.site import GALE_BOXWORK, xy_to_lonlat, lonlat_to_xy, MARS_RADIUS_M
+from marswalk.planner import get_default_grid, PROFILES
 
 APP_START_TIME = time.time()
 
@@ -277,11 +278,7 @@ def plan_route(
     end_lon: float = Query(..., description="Target longitude in Martian degrees"),
     agent: Literal["astronaut", "rover"] = Query("astronaut", description="Agent type: astronaut or rover"),
 ):
-    """Path planning query endpoint.
-
-    Validates start and end coordinates within Mount Sharp boxwork boundaries.
-    Full A* / Dijkstra raster pathfinding engine runs under the route planner module.
-    """
+    """Path planning query endpoint finding the safest path using A* over DEM, slope, and roughness."""
     bounds = _compute_bounds_latlon(GALE_BOXWORK.bounds)
 
     # Validate start point
@@ -298,26 +295,20 @@ def plan_route(
             detail=f"End point [{end_lat}, {end_lon}] is outside Gale Crater boxwork bounds.",
         )
 
-    # Convert coordinates to Martian projected meters for Euclidean distance
-    sx, sy = lonlat_to_xy(start_lon, start_lat)
-    ex, ey = lonlat_to_xy(end_lon, end_lat)
-    direct_dist_m = ((ex - sx) ** 2 + (ey - sy) ** 2) ** 0.5
+    grid = get_default_grid()
+    result = grid.plan_path(
+        start_lat=start_lat,
+        start_lon=start_lon,
+        end_lat=end_lat,
+        end_lon=end_lon,
+        agent=agent,
+    )
 
-    # Linear interpolation baseline path (5 waypoints) as fallback/precursor
-    steps = 5
-    path = []
-    for i in range(steps + 1):
-        t = i / steps
-        lat = start_lat + t * (end_lat - start_lat)
-        lon = start_lon + t * (end_lon - start_lon)
-        path.append([round(lat, 6), round(lon, 6)])
+    if not result.get("ok"):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=result.get("reason", "The planner found no safe route."),
+        )
 
-    return {
-        "status": "ok",
-        "agent": agent,
-        "direct_distance_m": round(direct_dist_m, 1),
-        "waypoints_count": len(path),
-        "path": path,
-        "type": "LineString",
-        "coordinates": [[p[1], p[0]] for p in path],  # GeoJSON [lon, lat] format
-    }
+    result["source"] = "api"
+    return result

@@ -101,21 +101,23 @@ def test_limits_endpoint():
 
 
 def test_route_endpoint_valid():
-    # Gale Crater boxwork valid coordinates
-    start_lat = -4.80
-    start_lon = 137.38
-    end_lat = -4.81
-    end_lon = 137.39
+    # Gale Crater boxwork valid coordinates along Curiosity traverse
+    start_lat = -4.79383
+    start_lon = 137.38965
+    end_lat = -4.79630
+    end_lon = 137.38799
 
     response = client.get(
         f"/route?start_lat={start_lat}&start_lon={start_lon}&end_lat={end_lat}&end_lon={end_lon}&agent=astronaut"
     )
     assert response.status_code == 200
     data = response.json()
-    assert data["status"] == "ok"
+    assert data["ok"] is True
     assert data["agent"] == "astronaut"
     assert "direct_distance_m" in data
     assert data["direct_distance_m"] > 0
+    assert "route_distance_m" in data
+    assert data["route_distance_m"] >= data["direct_distance_m"]
     assert "path" in data
     assert len(data["path"]) > 0
     assert "coordinates" in data
@@ -123,6 +125,19 @@ def test_route_endpoint_valid():
     first_coord = data["coordinates"][0]
     assert first_coord[0] == start_lon
     assert first_coord[1] == start_lat
+
+
+def test_route_endpoint_impassable_terrain():
+    # Attempting to route across an insurmountable ridge returns 400 with explanation
+    start_lat = -4.80
+    start_lon = 137.38
+    end_lat = -4.81
+    end_lon = 137.39
+    response = client.get(
+        f"/route?start_lat={start_lat}&start_lon={start_lon}&end_lat={end_lat}&end_lon={end_lon}&agent=astronaut"
+    )
+    assert response.status_code == 400
+    assert "No safe route found" in response.json()["detail"]
 
 
 def test_route_endpoint_out_of_bounds():

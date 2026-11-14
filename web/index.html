@@ -1,0 +1,240 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Marswalk Navigators</title>
+  <meta name="description" content="A Marswalk planner for the boxwork ridges of Mount Sharp, built on NASA terrain, thermal and radiation data.">
+  <meta name="theme-color" content="#07080a">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Saira:wdth,wght@100..125,300..800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="vendor/leaflet.css">
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ccircle cx='16' cy='16' r='14' fill='%23c4572a'/%3E%3Cpath d='M5 21c6-1 9-9 22-12' stroke='%23fff' stroke-width='2.4' fill='none' stroke-dasharray='3 2.4'/%3E%3C/svg%3E">
+</head>
+<body>
+
+<header class="nav" id="top">
+  <a class="brand" href="#hero" aria-label="Marswalk Navigators, back to top">
+    <svg class="brand-mark" viewBox="0 0 44 44" aria-hidden="true">
+      <circle cx="22" cy="22" r="20" fill="none" stroke="currentColor" stroke-width="1.4" opacity=".55"/>
+      <path d="M6 30 C 16 28, 22 14, 39 12" fill="none" stroke="currentColor" stroke-width="2" stroke-dasharray="3.2 2.6" stroke-linecap="round"/>
+      <circle cx="6" cy="30" r="2.4" fill="currentColor"/>
+      <circle cx="39" cy="12" r="2.4" fill="var(--accent)"/>
+    </svg>
+    <span class="brand-word">Marswalk<small>Navigators</small></span>
+  </a>
+  <nav class="nav-links" aria-label="Sections">
+    <a href="#map">Map</a>
+    <a href="#planning">Route</a>
+    <a href="#budgets">Budgets</a>
+    <a href="#fea">Load cases</a>
+    <a href="#data">Data</a>
+  </nav>
+  <button class="nav-toggle" aria-label="Open menu" aria-expanded="false" aria-controls="drawer">
+    <span></span><span></span><span></span>
+  </button>
+</header>
+
+<div class="drawer" id="drawer" hidden>
+  <nav aria-label="Menu">
+    <a href="#hero">Mount Sharp</a>
+    <a href="#map">Field map</a>
+    <a href="#planning">Route planning</a>
+    <a href="#budgets">Mission budgets</a>
+    <a href="#fea">Rover load cases</a>
+    <a href="#data">Data and credits</a>
+  </nav>
+</div>
+
+<main>
+
+<!-- 01 HERO ------------------------------------------------------------ -->
+<section class="hero" id="hero" aria-roledescription="carousel" aria-label="The site">
+  <div class="hero-bg" aria-hidden="true"></div>
+  <div class="hero-shade" aria-hidden="true"></div>
+
+  <div class="hero-inner">
+    <div class="hero-tabs" role="tablist" aria-label="Chapters"></div>
+
+    <div class="hero-copy" aria-live="polite">
+      <p class="eyebrow"><span class="eyebrow-key">Mission</span> : <span class="hero-eyebrow"></span></p>
+      <h1 class="hero-title"></h1>
+      <p class="hero-text"></p>
+    </div>
+
+    <div class="hero-side">
+      <div class="hero-arrows">
+        <button class="round-btn" data-dir="-1" aria-label="Previous chapter">
+          <svg viewBox="0 0 24 24"><path d="M6 14l6-6 6 6"/></svg>
+        </button>
+        <button class="round-btn" data-dir="1" aria-label="Next chapter">
+          <svg viewBox="0 0 24 24"><path d="M6 10l6 6 6-6"/></svg>
+        </button>
+      </div>
+      <div class="hero-dots" aria-hidden="true"></div>
+    </div>
+
+    <div class="hero-foot">
+      <a class="explore" href="#map">Explore the map <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg></a>
+      <div class="hero-count"><b class="hero-index">1/4</b><span>Next chapter</span></div>
+    </div>
+
+    <dl class="stat-strip hero-stats"></dl>
+  </div>
+
+  <a class="mobile-explore" href="#map">Explore<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 10l6 6 6-6"/></svg></a>
+</section>
+
+<!-- Stats repeat below the hero on phones, where the strip would crowd the photo -->
+<section class="mobile-stats" aria-label="Site at a glance">
+  <dl class="stat-strip stat-grid"></dl>
+</section>
+
+<!-- 02 MAP ------------------------------------------------------------- -->
+<section class="section map-section" id="map">
+  <div class="section-head">
+    <p class="eyebrow"><span class="eyebrow-key">02</span> : Field map</p>
+    <h2>The boxwork, layer by layer</h2>
+    <p class="lede">Every layer below is real orbital or rover data for a 4 by 6 km patch of Mount Sharp. Turn layers on and off, click two points to plan a walk, or pick one of Curiosity's stops to see what the ground actually looks like.</p>
+  </div>
+
+  <div class="dash">
+    <aside class="panel layers-panel" aria-label="Map layers">
+      <h3 class="panel-title">Layers</h3>
+      <ul class="layer-list"></ul>
+      <div class="legend" aria-live="polite"></div>
+    </aside>
+
+    <div class="map-wrap">
+      <div id="leaflet" role="application" aria-label="Map of the Mount Sharp boxwork area"></div>
+      <div class="map-hint">Click the map to set a start, then click again to set the end of the walk.</div>
+      <div class="map-readout" aria-live="polite"></div>
+    </div>
+
+    <aside class="panel route-panel" aria-label="Route">
+      <div class="seg" role="radiogroup" aria-label="Who is travelling">
+        <button role="radio" aria-checked="true" data-agent="astronaut">Astronaut</button>
+        <button role="radio" aria-checked="false" data-agent="rover">Support rover</button>
+      </div>
+      <div class="route-summary">
+        <p class="muted small route-status">Loading terrain…</p>
+        <dl class="kv route-kv"></dl>
+      </div>
+      <div class="profile">
+        <h4 class="mini-title">Height along the route</h4>
+        <div class="chart" id="profile-chart"></div>
+      </div>
+      <div class="route-actions">
+        <button class="btn ghost" data-action="swap">Swap ends</button>
+        <button class="btn ghost" data-action="clear">Clear</button>
+      </div>
+      <p class="source-note small muted"></p>
+    </aside>
+  </div>
+
+  <div class="stops">
+    <div class="stops-head">
+      <h3 class="panel-title">Science stops</h3>
+      <p class="muted small">Eight places Curiosity parked during the 2025 boxwork campaign, with the rover's own photos from each one.</p>
+    </div>
+    <div class="stop-rail" role="list"></div>
+    <div class="stop-detail" aria-live="polite"></div>
+  </div>
+</section>
+
+<!-- 03 ROUTE PLANNING ------------------------------------------------- -->
+<section class="section split" id="planning">
+  <figure class="split-media">
+    <img src="assets/img/boxwork-postcard-PIA26680.jpg" alt="Curiosity on top of a boxwork ridge, looking north across Gale Crater" loading="lazy">
+    <figcaption>Curiosity on a boxwork ridge, November 2025. NASA/JPL-Caltech, PIA26680.</figcaption>
+  </figure>
+  <div class="split-copy">
+    <p class="eyebrow"><span class="eyebrow-key">03</span> : Route planning</p>
+    <h2>A cost map, then a search</h2>
+    <p>The planner works the way a rover's navigation software does. We cut the area into 20 m squares and give each one a cost from its slope and roughness. Squares that are too steep or too broken are walls. Then an A* search finds the cheapest path between the two points you pick.</p>
+    <p>The astronaut and the rover get different limits. A person in a suit can scramble up short slopes the rover would refuse, but tires much faster on a long climb. The rover is the other way round. So the two routes often split around a ridge and meet again on the other side.</p>
+    <div class="limits">
+      <div class="limit-card">
+        <h4>Astronaut</h4>
+        <p><b>25°</b> steepest slope</p>
+        <p><b>2.0 m</b> roughest ground</p>
+      </div>
+      <div class="limit-card">
+        <h4>Support rover</h4>
+        <p><b>20°</b> steepest slope</p>
+        <p><b>1.5 m</b> roughest ground</p>
+      </div>
+    </div>
+    <div class="hazard-bars" aria-label="How much of the area is go, caution and no-go"></div>
+    <p class="small muted check-note"></p>
+  </div>
+</section>
+
+<!-- 04 BUDGETS -------------------------------------------------------- -->
+<section class="section budgets" id="budgets">
+  <div class="section-head">
+    <p class="eyebrow"><span class="eyebrow-key">04</span> : Mission budgets</p>
+    <h2>What the walk costs</h2>
+    <p class="lede">A Marswalk runs on three budgets: time in the suit, energy in the body and the batteries, and radiation. These numbers follow whichever route is on the map right now.</p>
+  </div>
+  <div class="budget-grid"></div>
+  <div class="dose-block">
+    <div>
+      <h3 class="panel-title">Radiation measured on the ground</h3>
+      <p class="muted">Curiosity's RAD instrument logged <span data-stat="rad_readings">over 10,000</span> readings while it worked here. This is the tissue-like detector, averaged per sol (a Mars day, about 24 hours 40 minutes). The dose is steady from day to day, which makes it easy to budget: time outside is what drives it.</p>
+    </div>
+    <div class="chart" id="dose-chart"></div>
+  </div>
+</section>
+
+<!-- 05 FEA ------------------------------------------------------------ -->
+<section class="section fea" id="fea">
+  <div class="fea-bg" aria-hidden="true"></div>
+  <div class="section-head">
+    <p class="eyebrow"><span class="eyebrow-key">05</span> : Rover load cases</p>
+    <h2>Will the wheels survive the route?</h2>
+    <p class="lede">Curiosity's aluminum wheels were punctured by sharp rocks on this mountain. So before a support rover follows a crew anywhere, we take the worst ground along the route and turn it into load cases for a finite element model of the wheel. Change the rover numbers and the table updates.</p>
+  </div>
+  <div class="fea-body">
+    <form class="panel rover-form" aria-label="Rover parameters"></form>
+    <div class="panel fea-table-wrap">
+      <div class="fea-table-head">
+        <h3 class="panel-title">Loads on one wheel</h3>
+        <button class="btn" data-action="csv">Download CSV</button>
+      </div>
+      <div class="table-scroll"><table class="fea-table"></table></div>
+      <p class="small muted fea-note"></p>
+    </div>
+  </div>
+</section>
+
+<!-- 06 DATA ----------------------------------------------------------- -->
+<section class="section data" id="data">
+  <div class="section-head">
+    <p class="eyebrow"><span class="eyebrow-key">06</span> : Data and credits</p>
+    <h2>Where every number comes from</h2>
+  </div>
+  <div class="data-grid">
+    <article><h4>Elevation and slope</h4><p>HiRISE stereo elevation model DTEEC_019698_1750_019988_1750_U01, 2 m per pixel, from Mars Reconnaissance Orbiter via USGS. We worked out slope and roughness from it.</p></article>
+    <article><h4>Surface photo</h4><p>The matching HiRISE image at 1 m per pixel, lined up with the elevation model.</p></article>
+    <article><h4>Night infrared</h4><p>THEMIS on Mars Odyssey, 100 m per pixel. Rock holds heat after sunset, so warm areas at night are firm ground and cold areas are loose sand.</p></article>
+    <article><h4>Radiation</h4><p>Curiosity's RAD instrument, sols 4489 to 4612, from NASA's Planetary Data System.</p></article>
+    <article><h4>Rover path and photos</h4><p>Curiosity's traverse and waypoints, and its raw Mastcam and Navcam images from sols 4530 to 4600.</p></article>
+    <article><h4>Photography</h4><p>Mount Sharp (PIA19912), boxwork postcard (PIA26680), Curiosity from orbit (PIA21710) and the Mojave self-portrait (PIA19142). NASA/JPL-Caltech/MSSS and University of Arizona. NASA images are public domain.</p></article>
+  </div>
+</section>
+
+</main>
+
+<footer class="footer">
+  <div class="brand-word">Marswalk<small>Navigators</small></div>
+  <p class="muted small">Built for the 2026 NASA Space Apps Challenge, "Interplanetary Survival Guide: Martian Map". Not affiliated with or endorsed by NASA.</p>
+  <a class="small" href="#hero">Back to top</a>
+</footer>
+
+<script src="vendor/leaflet.js"></script>
+<script type="module" src="js/main.js"></script>
+</body>
+</html>

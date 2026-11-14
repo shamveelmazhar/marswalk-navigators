@@ -12,4 +12,14 @@ We're starting at Mount Sharp in Gale Crater, where the Curiosity rover studied 
 - **Aerospace:** planning a Marswalk around its time, energy and radiation budgets, using Curiosity's own radiation measurements.
 - **FEA:** turning the worst terrain along a route into load cases, and checking a rover wheel or suspension part against them.
 
+## The website
+
+The `web/` folder holds the site: a full-screen look at Mount Sharp, a layered map of the boxwork where you can plan a walk, and live budgets and wheel load cases for whatever route you pick. To run it:
+
+```
+python -m http.server 8000 --directory web
+```
+
+Then open http://localhost:8000. The [web README](web/README.md) explains each part and how to rebuild its data.
+
 More details will follow as the project comes together over the hackathon weekend.

@@ -63,4 +63,4 @@ All of it is public NASA and USGS data:
 
 ## Tools we used
 
-We used AI tools to help write parts of the code and process the data. Every result was checked by the team.
+We used AI tools to help write parts of the code and process the data.

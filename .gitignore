@@ -1,0 +1,15 @@
+# Python
+__pycache__/
+*.pyc
+.venv/
+.pytest_cache/
+
+# Downloaded and generated data (rebuild with `python -m marswalk.build`)
+data/
+*.tif
+*.tif.aux.xml
+
+# Editors and OS
+.vscode/
+.idea/
+.DS_Store

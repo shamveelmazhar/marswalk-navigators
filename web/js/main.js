@@ -349,6 +349,16 @@ function initWeather() {
     uv: wx.uv.map((u) => u.toLowerCase()).join(" to "),
   };
   document.querySelectorAll("[data-weather]").forEach((n) => (n.textContent = vals[n.dataset.weather] ?? ""));
+  const last = wx.series[wx.series.length - 1];
+  $(".weather-latest").textContent = `Latest sol in our data: ${last.sol} (${last.date})`;
+  const tiles = [
+    ["Air high", fmt(last.airMax), "°C"],
+    ["Air low", fmt(last.airMin), "°C"],
+    ["Ground", `${fmt(last.groundMin)} <i>to</i> ${fmt(last.groundMax)}`, "°C"],
+    ["Pressure", fmt(last.pressurePa), "Pa"],
+    ["UV", last.uv, ""],
+  ];
+  $(".weather-stats").innerHTML = tiles.map(([k, v, u]) => `<div><dt>${k}</dt><dd>${v}${u ? `<small>${u}</small>` : ""}</dd></div>`).join("");
   $("#weather").hidden = false;
   drawWeatherChart();
 }

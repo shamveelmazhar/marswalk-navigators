@@ -26,7 +26,6 @@ app = FastAPI(
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
-    allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
@@ -84,14 +83,22 @@ def root():
 
 @app.get("/health", tags=["Health"])
 def health_check():
-    """Service health and uptime status."""
+    """Service health, uptime, and terrain grid status."""
     uptime = time.time() - APP_START_TIME
+    grid_loaded = False
+    try:
+        grid = get_default_grid()
+        grid_loaded = grid is not None and grid.elev is not None
+    except Exception:
+        grid_loaded = False
+
     return {
-        "status": "ok",
+        "status": "ok" if grid_loaded else "degraded",
         "service": "marswalk-api",
         "version": "1.0.0",
         "uptime_seconds": round(uptime, 2),
         "site": GALE_BOXWORK.name,
+        "grid_loaded": grid_loaded,
     }
 
 
@@ -210,6 +217,7 @@ def get_site():
     bounds = _compute_bounds_latlon(GALE_BOXWORK.bounds)
     site_data = _load_site_json()
 
+    astro_profile = PROFILES["astronaut"]
     base_response = {
         "id": GALE_BOXWORK.name,
         "name": "Mount Sharp boxwork, Gale Crater",
@@ -224,10 +232,10 @@ def get_site():
             "bounds": [[bounds["min_lat"], bounds["min_lon"]], [bounds["max_lat"], bounds["max_lon"]]],
         },
         "limits": {
-            "slope_caution_deg": 15.0,
-            "slope_nogo_deg": 25.0,
-            "roughness_caution_m": 1.0,
-            "roughness_nogo_m": 2.0,
+            "slope_caution_deg": astro_profile.comfort_slope_deg,
+            "slope_nogo_deg": astro_profile.max_slope_deg,
+            "roughness_caution_m": astro_profile.caution_roughness_m,
+            "roughness_nogo_m": astro_profile.max_roughness_m,
         },
     }
 
@@ -241,32 +249,27 @@ def get_site():
 @app.get("/limits", tags=["Robotics & Safety"])
 def get_limits():
     """Traversability limits and mobility profile parameters for astronauts and rovers."""
+    profiles_data = {}
+    for key, p in PROFILES.items():
+        entry = {
+            "name": p.name,
+            "max_slope_deg": p.max_slope_deg,
+            "caution_slope_deg": p.comfort_slope_deg,
+            "max_roughness_m": p.max_roughness_m,
+            "caution_roughness_m": p.caution_roughness_m,
+            "nominal_speed_kmh": p.nominal_speed_kmh,
+            "max_speed_kmh": p.max_speed_kmh,
+            "notes": p.notes,
+        }
+        if p.metabolic_rate_w is not None:
+            entry["metabolic_rate_w"] = p.metabolic_rate_w
+        if p.solar_budget_wh_per_sol is not None:
+            entry["solar_budget_wh_per_sol"] = p.solar_budget_wh_per_sol
+        profiles_data[key] = entry
+
     return {
         "site": GALE_BOXWORK.name,
-        "profiles": {
-            "astronaut": {
-                "name": "Astronaut (EVA On Foot)",
-                "max_slope_deg": 25.0,
-                "caution_slope_deg": 15.0,
-                "max_roughness_m": 2.0,
-                "caution_roughness_m": 1.0,
-                "nominal_speed_kmh": 3.6,
-                "max_speed_kmh": 4.5,
-                "metabolic_rate_w": 300.0,
-                "notes": "Higher slope agility than wheeled rover, but strictly limited by life-support EVA duration and cumulative radiation dose.",
-            },
-            "rover": {
-                "name": "Support Rover (Wheeled)",
-                "max_slope_deg": 15.0,
-                "caution_slope_deg": 10.0,
-                "max_roughness_m": 1.0,
-                "caution_roughness_m": 0.5,
-                "nominal_speed_kmh": 0.15,
-                "max_speed_kmh": 0.20,
-                "solar_budget_wh_per_sol": 900.0,
-                "notes": "Wheel slip on steep slopes and wheel wear from sharp bedrock ridges (Gale Crater boxwork) require stricter slope and roughness ceilings.",
-            },
-        },
+        "profiles": profiles_data,
     }
 
 

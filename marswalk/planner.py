@@ -20,23 +20,36 @@ class MobilityProfile:
     max_slope_deg: float
     max_roughness_m: float
     comfort_slope_deg: float
+    caution_roughness_m: float
     nominal_speed_kmh: float
+    max_speed_kmh: float
+    notes: str
+    metabolic_rate_w: Optional[float] = None
+    solar_budget_wh_per_sol: Optional[float] = None
 
 
-PROFILES = {
+PROFILES: Dict[str, MobilityProfile] = {
     "astronaut": MobilityProfile(
         name="Astronaut (EVA on foot)",
         max_slope_deg=25.0,
         max_roughness_m=2.0,
         comfort_slope_deg=15.0,
+        caution_roughness_m=1.0,
         nominal_speed_kmh=3.6,
+        max_speed_kmh=4.5,
+        notes="Higher slope agility than wheeled rover, but strictly limited by life-support EVA duration and cumulative radiation dose.",
+        metabolic_rate_w=300.0,
     ),
     "rover": MobilityProfile(
         name="Support Rover (Wheeled)",
         max_slope_deg=20.0,
         max_roughness_m=1.5,
         comfort_slope_deg=12.0,
+        caution_roughness_m=0.5,
         nominal_speed_kmh=0.15,
+        max_speed_kmh=0.20,
+        notes="Wheel slip on steep slopes and wheel wear from sharp bedrock ridges (Gale Crater boxwork) require stricter slope and roughness ceilings.",
+        solar_budget_wh_per_sol=900.0,
     ),
 }
 
@@ -72,8 +85,6 @@ class TerrainGrid:
         self.cell_m = cell_m
 
         if bounds_latlon is None:
-            # Mount Sharp boxwork bounds in degrees: (south, west, north, east)
-            # Calculated from GALE_BOXWORK.bounds
             min_lon, min_lat = xy_to_lonlat(GALE_BOXWORK.bounds[0], GALE_BOXWORK.bounds[1])
             max_lon, max_lat = xy_to_lonlat(GALE_BOXWORK.bounds[2], GALE_BOXWORK.bounds[3])
             self.south = min_lat
@@ -86,7 +97,6 @@ class TerrainGrid:
         self.d_lat = (self.north - self.south) / self.h
         self.d_lon = (self.east - self.west) / self.w
 
-        count = self.w * self.h
         if elev is not None:
             self.elev = elev.reshape((self.h, self.w))
         else:
@@ -207,12 +217,28 @@ class TerrainGrid:
         s_r, s_c = start_node
         t_r, t_c = end_node
 
-        # Calculate direct distance
-        direct_dist_m = math.hypot(t_r - s_r, t_c - s_c) * self.cell_m
+        # Check if coordinates were snapped
+        start_is_passable = self.is_passable(start_r, start_c, profile)
+        end_is_passable = self.is_passable(end_r, end_c, profile)
 
-        # If start and target land in same cell
+        snapped_start_coord = list(self.cell_to_coord(s_r, s_c))
+        snapped_end_coord = list(self.cell_to_coord(t_r, t_c))
+
+        start_snap_dist = math.hypot(start_r - s_r, start_c - s_c) * self.cell_m
+        end_snap_dist = math.hypot(end_r - t_r, end_c - t_c) * self.cell_m
+        is_snapped = (not start_is_passable) or (not end_is_passable)
+
+        # Direct Euclidean distance between start and end
+        sx, sy = lonlat_to_xy(start_lon, start_lat)
+        ex, ey = lonlat_to_xy(end_lon, end_lat)
+        direct_dist_m = math.hypot(ex - sx, ey - sy)
+
+        # Same cell target
         if (s_r, s_c) == (t_r, t_c):
-            path = [[start_lat, start_lon], [end_lat, end_lon]]
+            path = [
+                [start_lat, start_lon] if start_is_passable else snapped_start_coord,
+                [end_lat, end_lon] if end_is_passable else snapped_end_coord,
+            ]
             return {
                 "ok": True,
                 "path": path,
@@ -221,16 +247,22 @@ class TerrainGrid:
                 "route_distance_m": round(direct_dist_m, 1),
                 "elevation_gain_m": 0.0,
                 "elevation_loss_m": 0.0,
+                "min_elevation_m": float(self.elev[s_r, s_c]),
+                "max_elevation_m": float(self.elev[s_r, s_c]),
                 "max_slope_deg": float(self.slope[s_r, s_c]),
                 "mean_slope_deg": float(self.slope[s_r, s_c]),
                 "max_roughness_m": round(float(self.rough[s_r, s_c]) / 10.0, 2),
                 "mean_roughness_m": round(float(self.rough[s_r, s_c]) / 10.0, 2),
                 "agent": agent,
+                "snapped": is_snapped,
+                "snapped_start": snapped_start_coord,
+                "snapped_end": snapped_end_coord,
+                "snapped_start_dist_m": round(start_snap_dist, 1),
+                "snapped_end_dist_m": round(end_snap_dist, 1),
             }
 
-        # A* Search data structures
+        # A* Search
         open_set = []
-        # Item: (f_score, g_score, (r, c))
         h_start = math.hypot(s_r - t_r, s_c - t_c) * self.cell_m
         heapq.heappush(open_set, (h_start, 0.0, (s_r, s_c)))
 
@@ -260,6 +292,13 @@ class TerrainGrid:
             for dr, dc, k in NEIGHBOR_STEPS:
                 nr, nc = r + dr, c + dc
 
+                # CORNER CUTTING PREVENTION:
+                # For diagonal steps, skip if either orthogonal neighbor is impassable.
+                # This prevents slipping diagonally between two cliff cells.
+                if dr != 0 and dc != 0:
+                    if not self.is_passable(r, nc, profile) or not self.is_passable(nr, c, profile):
+                        continue
+
                 if (nr, nc) in closed_set:
                     continue
                 if not self.is_passable(nr, nc, profile):
@@ -271,7 +310,6 @@ class TerrainGrid:
                 next_elev = self.elev[nr, nc]
                 climb = max(0, int(next_elev) - int(curr_elev))
 
-                # Step cost penalizes steep slopes (quadratic) and surface roughness plus climbing effort
                 cost = step_len * (1.0 + 2.5 * (sl ** 2) + 0.6 * ro) + 3.0 * climb
                 tentative_g = current_g + cost
 
@@ -295,16 +333,35 @@ class TerrainGrid:
             path_cells.append(curr)
         path_cells.reverse()
 
-        # Convert cell centers to lat/lon coordinates
+        # Convert cell centers to coordinates
         coords = [list(self.cell_to_coord(r, c)) for r, c in path_cells]
-        coords[0] = [start_lat, start_lon]
-        coords[-1] = [end_lat, end_lon]
+        # Only pin exact clicked points if they are actually passable,
+        # otherwise begin/end at the snapped cell center to avoid crossing a cliff
+        if start_is_passable:
+            coords[0] = [start_lat, start_lon]
+        else:
+            coords[0] = snapped_start_coord
 
-        # Smooth path using Chaikin algorithm
+        if end_is_passable:
+            coords[-1] = [end_lat, end_lon]
+        else:
+            coords[-1] = snapped_end_coord
+
+        # Compute route metrics strictly from raw A*-verified cells
+        metrics = self._calculate_route_metrics_from_cells(path_cells, coords)
+
+        # Smooth path with Chaikin corner-cutting
         smoothed_coords = smooth_path(coords, rounds=2)
 
-        # Compute route metrics along smoothed path
-        metrics = self._calculate_route_metrics(smoothed_coords)
+        # Verify that all smoothed points remain passable; fall back to raw coords if any point cuts across a cliff
+        smoothed_safe = True
+        for p in smoothed_coords:
+            pr, pc = self.coord_to_cell(p[0], p[1])
+            if not self.is_passable(pr, pc, profile):
+                smoothed_safe = False
+                break
+
+        final_path = smoothed_coords if smoothed_safe else coords
 
         return {
             "ok": True,
@@ -319,45 +376,36 @@ class TerrainGrid:
             "mean_slope_deg": round(metrics["mean_slope_deg"], 1),
             "max_roughness_m": round(metrics["max_roughness_m"], 2),
             "mean_roughness_m": round(metrics["mean_roughness_m"], 2),
-            "path": smoothed_coords,
+            "path": final_path,
             "type": "LineString",
-            "coordinates": [[p[1], p[0]] for p in smoothed_coords],
+            "coordinates": [[p[1], p[0]] for p in final_path],
+            "snapped": is_snapped,
+            "snapped_start": snapped_start_coord,
+            "snapped_end": snapped_end_coord,
+            "snapped_start_dist_m": round(start_snap_dist, 1),
+            "snapped_end_dist_m": round(end_snap_dist, 1),
         }
 
-    def _calculate_route_metrics(self, path_coords: List[List[float]]) -> Dict[str, float]:
-        """Compute distance, elevation gain/loss, slope, and roughness along path."""
+    def _calculate_route_metrics_from_cells(
+        self,
+        path_cells: List[Tuple[int, int]],
+        path_coords: List[List[float]],
+    ) -> Dict[str, float]:
+        """Compute metrics strictly from the verified cells traversed by A*."""
         total_dist = 0.0
         elev_gain = 0.0
         elev_loss = 0.0
-        elevations = []
-        slopes = []
-        roughnesses = []
 
         for i in range(len(path_coords) - 1):
             p1 = path_coords[i]
             p2 = path_coords[i + 1]
-
-            # Geodetic distance on Mars
             d_lat = math.radians(p2[0] - p1[0])
             d_lon = math.radians(p2[1] - p1[1]) * math.cos(math.radians((p1[0] + p2[0]) / 2.0))
-            seg_dist = math.hypot(d_lat, d_lon) * MARS_RADIUS_M
-            total_dist += seg_dist
+            total_dist += math.hypot(d_lat, d_lon) * MARS_RADIUS_M
 
-            r, c = self.coord_to_cell(p1[0], p1[1])
-            if self.is_in_bounds(r, c) and self.is_valid(r, c):
-                z = self.get_elevation_bilinear(p1[0], p1[1]) or float(self.elev[r, c])
-                elevations.append(z)
-                slopes.append(float(self.slope[r, c]))
-                roughnesses.append(float(self.rough[r, c]) / 10.0)
-
-        # Include last point
-        last = path_coords[-1]
-        r, c = self.coord_to_cell(last[0], last[1])
-        if self.is_in_bounds(r, c) and self.is_valid(r, c):
-            z = self.get_elevation_bilinear(last[0], last[1]) or float(self.elev[r, c])
-            elevations.append(z)
-            slopes.append(float(self.slope[r, c]))
-            roughnesses.append(float(self.rough[r, c]) / 10.0)
+        elevations = [float(self.elev[r, c]) for r, c in path_cells]
+        slopes = [float(self.slope[r, c]) for r, c in path_cells]
+        roughnesses = [float(self.rough[r, c]) / 10.0 for r, c in path_cells]
 
         for i in range(len(elevations) - 1):
             dz = elevations[i + 1] - elevations[i]
@@ -400,12 +448,14 @@ _DEFAULT_GRID: Optional[TerrainGrid] = None
 
 
 def get_default_grid() -> TerrainGrid:
-    """Retrieve or initialize the default Gale Crater boxwork terrain grid."""
+    """Retrieve or initialize the default Gale Crater boxwork terrain grid.
+
+    Raises FileNotFoundError loudly if the grid data is missing.
+    """
     global _DEFAULT_GRID
     if _DEFAULT_GRID is not None:
         return _DEFAULT_GRID
 
-    # Check potential locations for grid.bin
     search_paths = [
         os.path.join(os.path.dirname(__file__), "..", "web", "data", "grid.bin"),
         os.path.join("web", "data", "grid.bin"),
@@ -413,12 +463,10 @@ def get_default_grid() -> TerrainGrid:
     ]
     for path in search_paths:
         if os.path.isfile(path):
-            try:
-                _DEFAULT_GRID = TerrainGrid.from_binary_file(path)
-                return _DEFAULT_GRID
-            except Exception:
-                pass
+            _DEFAULT_GRID = TerrainGrid.from_binary_file(path)
+            return _DEFAULT_GRID
 
-    # Fallback to an unpopulated terrain grid
-    _DEFAULT_GRID = TerrainGrid()
-    return _DEFAULT_GRID
+    raise FileNotFoundError(
+        "Terrain grid binary file 'grid.bin' not found. "
+        "Please ensure 'web/data/grid.bin' exists or run 'python -m web.tools.build_web_data'."
+    )

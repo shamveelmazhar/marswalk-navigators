@@ -1,0 +1,5 @@
+# Just what the route-planner API needs, so a hosted deploy (Render etc.) builds fast.
+# The full toolkit, including the data build scripts and tests, is in requirements.txt.
+numpy>=1.26
+fastapi>=0.110
+uvicorn>=0.28

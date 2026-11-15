@@ -43,9 +43,18 @@ GET {api}/route?start_lat=..&start_lon=..&end_lat=..&end_lon=..&agent=astronaut|
 
 It can answer with a GeoJSON LineString or with `{"path": [[lat, lon], ...]}`. A 4xx answer with `{"detail": "..."}` is shown to the user as the reason there's no route. If the API doesn't answer, the browser planner takes over quietly. See `js/api.js`.
 
+Once the API has a public address, put it in `config.js` (`window.MARSWALK_API = "https://..."`) so every visitor uses it without needing the `?api=` part.
+
+## Putting it online
+
+The site is static, so any static host works. On Vercel, import the repository, set the Root Directory to `web`, choose "Other" as the framework, and leave the build command and output directory empty. Every push to `main` then redeploys it.
+
+The API can run on Render as a Python web service from the repository root, with `pip install -r requirements-api.txt` as the build command and `uvicorn marswalk.api:app --host 0.0.0.0 --port $PORT` as the start command. It reads the terrain grid from `web/data/grid.bin`, so nothing has to be downloaded first, and CORS is already open to any site.
+
 ## Files
 
 - `index.html`: the page.
+- `config.js`: the address of the team's planner API, if it's online.
 - `css/style.css`: all styling, including the phone layout.
 - `js/main.js`: wires everything together.
 - `js/hero.js`: the opening chapters.

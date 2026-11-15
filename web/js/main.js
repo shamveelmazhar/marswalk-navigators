@@ -3,7 +3,7 @@ import { pathStats, walkBudget, driveBudget, loadCases, casesToCsv, ROVER_DEFAUL
 import { lineChart } from "./charts.js";
 import { chapters, initHero } from "./hero.js";
 import { MapView } from "./map.js";
-import { fetchRoute, fetchBriefing, apiBase } from "./api.js";
+import { fetchRoute, apiBase } from "./api.js";
 
 const $ = (s, root = document) => root.querySelector(s);
 const fmt = (n, d = 0) => Number(n).toLocaleString("en-US", { minimumFractionDigits: d, maximumFractionDigits: d });
@@ -42,7 +42,7 @@ async function boot() {
   initHazardBars();
   initRoverForm();
   drawDoseChart();
-  initAiBriefing();
+  initBriefing();
   $(".source-note").textContent = apiBase()
     ? `Routes come from the team planner at ${apiBase()}. If it doesn't answer, the browser works them out instead.`
     : "Routes are worked out in your browser on a 20 m terrain grid.";
@@ -138,6 +138,7 @@ function renderAll() {
   renderRoutePanel();
   renderBudgets();
   renderFea();
+  renderBriefing();
 }
 
 /* ---------- route panel ---------- */
@@ -345,6 +346,7 @@ function initRoverForm() {
     state.rover[e.target.name] = e.target.name === "wheels" ? Math.max(2, Math.round(v)) : v;
     renderBudgets();
     renderFea();
+    renderBriefing();
     if (state.agent === "rover") renderRoutePanel();
   });
   form.addEventListener("submit", (e) => e.preventDefault());
@@ -391,89 +393,106 @@ function downloadCsv() {
 }
 
 
-/* ---------- Mission briefing ---------- */
-function initAiBriefing() {
-  const btn = $("#btn-ai-briefing");
-  const out = $("#ai-briefing-output");
-  if (!btn || !out) return;
+/* ---------- mission briefing ---------- */
+// Written from the same numbers as the budget cards and load cases, so the two
+// always agree. Once it's open it follows the route on the map.
+let briefingOpen = false;
 
-  btn.addEventListener("click", async () => {
-    if (state.points.length < 2) {
-      out.style.display = "block";
-      out.innerHTML = `<span style="color:#ffb74d;">⚠️ Please click start and target points on the map first to plan a route before generating a mission briefing.</span>`;
-      return;
-    }
-
-    btn.disabled = true;
-    btn.textContent = "Synthesizing Briefing...";
-    out.style.display = "block";
-    out.innerHTML = `<span class="muted">Synthesizing Mission Briefing...</span>`;
-
-    const briefing = await fetchBriefing(state.points[0], state.points[1], state.agent);
-    btn.disabled = false;
-    btn.textContent = "Generate Mission Briefing";
-
-    if (briefing && briefing.briefing_markdown) {
-      out.innerHTML = briefing.briefing_markdown
-        .replace(/^# (.*$)/gim, '<h2 style="color:#ffab91; margin:0.5rem 0;">$1</h2>')
-        .replace(/^## (.*$)/gim, '<h3 style="color:#ffe082; margin:0.75rem 0 0.25rem;">$1</h3>')
-        .replace(/\*\*(.*?)\*\*/gim, '<b>$1</b>')
-        .replace(/`(.*?)`/gim, '<code style="background:rgba(255,255,255,0.1); padding:2px 4px; border-radius:3px;">$1</code>');
-    } else {
-      const agentKey = state.agent || "astronaut";
-      const route = state.routes[agentKey] || state.routes.astronaut;
-      if (route && route.ok && route.pts && route.pts.length > 0) {
-        const stats = route.stats;
-        const doseRate = state.site?.stats?.dose_uGy_h || 6.67;
-        const w = walkBudget(route.pts, doseRate);
-        const agentLimit = AGENTS[agentKey]?.maxSlope || 25.0;
-        const isGo = (w.hours <= EVA_HOURS) && (stats.maxSlopeDeg <= agentLimit);
-        const statusLabel = isGo ? "GO FOR EVA" : "CAUTION / CONTINGENCY REQUIRED";
-        const statusColor = isGo ? "#81c784" : "#ffb74d";
-        const distKm = (stats.dist3dM / 1000).toFixed(2);
-        const evaPct = (w.evaShare * 100).toFixed(1);
-
-        let hazardNotes = [];
-        if (stats.maxSlopeDeg > agentLimit) {
-          hazardNotes.push(`Maximum slope reaches <b>${stats.maxSlopeDeg.toFixed(1)}°</b>, exceeding the safe limit for ${agentKey} (<b>${agentLimit}°</b>).`);
-        } else if (stats.maxSlopeDeg > 15) {
-          hazardNotes.push(`Steep incline section (<b>${stats.maxSlopeDeg.toFixed(1)}°</b>) requires deliberate footing and traction control.`);
-        }
-        if (w.hours > EVA_HOURS) {
-          hazardNotes.push(`Projected duration of <b>${w.hours.toFixed(2)} h</b> exceeds the ${EVA_HOURS}.0-hour EVA suit limit.`);
-        }
-        if (!hazardNotes.length) {
-          hazardNotes.push(`Terrain slope (${stats.maxSlopeDeg.toFixed(1)}°) and surface relief remain within nominal ${agentKey} mobility margins.`);
-        }
-
-        out.innerHTML = `
-          <h3 style="color:#ffab91; margin:0 0 0.5rem;">🔴 Mission Briefing (Browser Kinematics)</h3>
-          <p><b>Status:</b> <span style="color:${statusColor}; font-weight:bold;">${statusLabel}</span> | <b>Target:</b> ${agentKey.toUpperCase()} | <b>Traverse:</b> ${distKm} km</p>
-          <div style="margin: 0.5rem 0; padding: 0.5rem 0.75rem; background: rgba(255,255,255,0.05); border-radius: 4px;">
-            <b>Life-Support & Consumables:</b>
-            <ul style="margin: 0.25rem 0 0 1.2rem; padding: 0;">
-              <li><b>Time:</b> ${w.hours.toFixed(2)} h (${evaPct}% of ${EVA_HOURS}h EVA ceiling)</li>
-              <li><b>Metabolic Energy:</b> ${Math.round(w.kcal)} kcal (${Math.round(w.kJ)} kJ)</li>
-              <li><b>Oxygen (O₂):</b> ${w.o2Kg.toFixed(2)} kg consumed</li>
-              <li><b>Radiation:</b> ${w.doseUGy.toFixed(1)} µGy absorbed (MSL RAD rate: ${doseRate} µGy/h)</li>
-            </ul>
-          </div>
-          <div style="margin: 0.5rem 0;">
-            <b>Terrain Constraints & Hazards:</b>
-            <ul style="margin: 0.25rem 0 0 1.2rem; padding: 0;">
-              ${hazardNotes.map(n => `<li>${n}</li>`).join("")}
-            </ul>
-          </div>
-          <p class="muted small" style="margin-top:0.75rem; border-top: 1px solid rgba(255,255,255,0.1); padding-top:0.5rem;">
-            ℹ️ Calculated client-side using Pandolf/Tobler physics while FastAPI backend spins up on Render.
-          </p>
-        `;
-      } else {
-        out.innerHTML = `
-          <h3 style="color:#ffab91; margin:0 0 0.5rem;">🔴 Mission Briefing</h3>
-          <p style="color:#ffb74d;">The mission briefing requires an active planned route or a responding API. Render free-tier cold starts may take 15–30 seconds to wake up; please wait a moment and try again once the route appears on the map.</p>
-        `;
-      }
-    }
+function initBriefing() {
+  $("#btn-briefing").addEventListener("click", () => {
+    briefingOpen = true;
+    renderBriefing();
   });
+}
+
+// Shortest distance from a stop to the route, in meters (flat-ground approximation, fine at this scale)
+function distToRouteM(stop, latlngs) {
+  const R = 3396190, toRad = Math.PI / 180;
+  const k = Math.cos(stop.lat * toRad);
+  const xy = ([lat, lon]) => [(lon - stop.lon) * toRad * R * k, (lat - stop.lat) * toRad * R];
+  let best = Infinity;
+  for (let i = 1; i < latlngs.length; i++) {
+    const [ax, ay] = xy(latlngs[i - 1]), [bx, by] = xy(latlngs[i]);
+    const dx = bx - ax, dy = by - ay, len2 = dx * dx + dy * dy;
+    const t = len2 ? Math.max(0, Math.min(1, -(ax * dx + ay * dy) / len2)) : 0;
+    best = Math.min(best, Math.hypot(ax + t * dx, ay + t * dy));
+  }
+  return best;
+}
+
+function renderBriefing() {
+  const out = $(".briefing-out");
+  if (!briefingOpen || !out) return;
+  out.hidden = false;
+  const a = state.routes.astronaut, r = state.routes.rover;
+  if (!a) {
+    out.innerHTML = `<p class="briefing-call">Pick a start and an end on the map first, and the briefing will be written for that walk.</p>`;
+    return;
+  }
+  if (!a.ok) {
+    out.innerHTML = `<p class="briefing-call"><b class="warn">No walk</b>${esc(a.reason)}</p>`;
+    return;
+  }
+
+  const site = state.site.stats;
+  const s = a.stats;
+  const w = walkBudget(a.pts, site.dose_uGy_h);
+  const roundTrip = w.hours * 2;
+  const fits = roundTrip <= EVA_HOURS;
+  const roverOk = r?.ok;
+  const d = roverOk ? driveBudget(r.pts, state.rover) : null;
+
+  let call, callClass;
+  if (!fits) { call = "Too long"; callClass = "warn"; }
+  else if (!roverOk) { call = "Go on foot"; callClass = "warn"; }
+  else { call = "Go"; callClass = "go"; }
+  const callText = !fits
+    ? `Out and back would take ${hm(roundTrip)}, more than one ${EVA_HOURS} hour spacewalk. Pick a closer end point or plan a stop at a shelter on the way.`
+    : !roverOk
+      ? `The walk fits in one spacewalk (${hm(roundTrip)} out and back), but the rover can't follow on this route, so the crew member would be on their own.`
+      : `Out and back takes about ${hm(roundTrip)} on foot, ${fmt((roundTrip / EVA_HOURS) * 100)}% of an ${EVA_HOURS} hour spacewalk, and the rover can follow.`;
+
+  const watch = [];
+  const astro = AGENTS.astronaut;
+  if (s.maxSlopeDeg >= astro.comfortSlope) watch.push(`The steepest ground on foot is ${fmt(s.maxSlopeDeg)}°, above the ${astro.comfortSlope}° that's comfortable in a suit. Take that stretch slowly.`);
+  if (s.maxRoughM >= 1) watch.push(`Ridges up to ${fmt(s.maxRoughM, 1)} m high on the walk. Boxwork edges are sharp enough to snag a suit.`);
+  if (d && d.hours > w.hours * 1.5) watch.push(`The rover is much slower than walking (${hm(d.hours)} against ${hm(w.hours)}), so it should set off well ahead of the crew.`);
+  if (roverOk) {
+    const worst = loadCases(r.stats, state.rover).find((c) => c.worst);
+    if (worst) watch.push(`The hardest load on a rover wheel is ${worst.id}, ${worst.name.toLowerCase()}: about ${fmt(worst.total)} N. See the load cases below.`);
+  }
+  if (!watch.length) watch.push("Nothing stands out. Slopes and roughness stay well inside the limits.");
+
+  const near = state.site.stops
+    .map((st) => ({ st, m: distToRouteM(st, a.latlngs) }))
+    .filter((x) => x.m <= 300)
+    .sort((x, y) => x.m - y.m);
+
+  const solDose = site.dose_uGy_h * SOL_HOURS;
+  out.innerHTML = `
+    <p class="briefing-call"><b class="${callClass}">${call}</b>${callText}</p>
+    <div>
+      <h4>The walk, one way</h4>
+      <p>${fmt(s.dist3dM / 1000, 2)} km with ${fmt(s.climbM)} m of climbing and ${fmt(s.descentM)} m down, taking about ${hm(w.hours)}. It burns around ${fmt(w.kcal)} kcal and ${fmt(w.o2Kg, 2)} kg of oxygen.</p>
+    </div>
+    <div>
+      <h4>Radiation</h4>
+      <p>${fmt(w.doseUGy, 1)} µGy one way at the ${site.dose_uGy_h} µGy/h Curiosity measured here. A whole sol outside would be about ${fmt(solDose)} µGy, so time outside is what to keep short.</p>
+    </div>
+    <div>
+      <h4>The support rover</h4>
+      <p>${roverOk
+        ? `Its own route is ${fmt(r.stats.dist3dM / 1000, 2)} km and takes ${hm(d.hours)} at ${state.rover.speedMs} m/s, using about ${fmt(d.wh)} Wh. Its steepest ground is ${fmt(r.stats.maxSlopeDeg)}°.`
+        : `No safe route for the rover between these points. ${r ? esc(r.reason) : ""}`}</p>
+    </div>
+    <div>
+      <h4>Things to watch</h4>
+      <ul>${watch.map((x) => `<li>${x}</li>`).join("")}</ul>
+    </div>
+    <div class="briefing-wide">
+      <h4>Curiosity stops along the way</h4>
+      ${near.length
+        ? `<ul>${near.map(({ st, m }) => `<li><b>${esc(st.title || st.name)}</b>, ${fmt(m)} m from the route.${st.blurb ? ` ${esc(st.blurb)}` : ""}</li>`).join("")}</ul>`
+        : `<p>The walk doesn't pass within 300 m of any of Curiosity's stops.</p>`}
+    </div>`;
 }

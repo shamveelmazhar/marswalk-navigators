@@ -183,7 +183,7 @@ def test_get_briefing_endpoint():
     data = response.json()
     assert "status" in data
     assert "briefing_markdown" in data
-    assert "# 🔴 MARSWALK MISSION BRIEFING" in data["briefing_markdown"]
+    assert data["briefing_markdown"].startswith("# Marswalk briefing")
     assert "life_support" in data
     assert "hazard_warnings" in data
 

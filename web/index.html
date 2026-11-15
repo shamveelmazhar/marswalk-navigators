@@ -180,15 +180,15 @@
     <p class="lede">A Marswalk runs on three budgets: time in the suit, energy in the body and the batteries, and radiation. These numbers follow whichever route is on the map right now.</p>
   </div>
   <div class="budget-grid"></div>
-  <div class="ai-briefing-wrap panel" style="margin-top: 1.5rem; padding: 1.5rem; border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 8px;">
-    <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:1rem;">
+  <div class="panel briefing">
+    <div class="briefing-head">
       <div>
-        <h3 class="panel-title" style="margin:0; color: #ffab91;">🔴 Astronaut Mission Briefing</h3>
-        <p class="muted small" style="margin:0.25rem 0 0;">Synthesizes terrain kinematics, PLSS life-support consumables, rover solar power, and Curiosity science context.</p>
+        <h3 class="panel-title">Mission briefing</h3>
+        <p class="muted small">A short write-up of the walk on the map: what it costs, what the rover has to do, what to watch for and which of Curiosity's stops it passes. It uses the same numbers as above.</p>
       </div>
-      <button class="btn" id="btn-ai-briefing" type="button">Generate Mission Briefing</button>
+      <button class="btn" id="btn-briefing" type="button">Write the briefing</button>
     </div>
-    <div id="ai-briefing-output" style="margin-top:1rem; display:none; line-height: 1.6; font-size: 0.95rem; white-space: pre-wrap; background: rgba(0,0,0,0.3); padding: 1.25rem; border-radius: 6px;"></div>
+    <div class="briefing-out" aria-live="polite" hidden></div>
   </div>
   <div class="dose-block">
     <div>

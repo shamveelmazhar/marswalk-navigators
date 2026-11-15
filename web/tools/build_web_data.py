@@ -4,6 +4,7 @@ The raw rasters are 15 to 20 MB each, which is far too heavy for a browser.
 This script reads them once and writes:
 
   web/assets/layers/*.webp   colored map layers (photo, terrain, slope, hazard, thermal)
+  web/assets/layers/base.webp the wide backdrop under everything (THEMIS day IR)
   web/data/grid.bin          a coarse 20 m terrain grid the in-browser route preview uses
   web/data/site.json         bounds, headline numbers, science stops, radiation by sol
   web/data/traverse.json     Curiosity's real path through the area, simplified
@@ -153,6 +154,19 @@ def build_layers(d, out):
     color = ramp(v, [(0, (12, 8, 40)), (0.3, (90, 20, 110)), (0.6, (210, 70, 60)), (0.85, (250, 160, 40)), (1, (252, 240, 170))])
     save_rgba(color, np.where(mask > 0, 210, 0), out / "thermal.webp")
     layers["thermal"] = bounds_latlon(tb)
+
+    # Wide backdrop: THEMIS day infrared, which reads like a shaded relief photo
+    # of the whole 24 x 30 km box. Tinted dusty tan so the map never shows empty
+    # black around the small HiRISE strip when you zoom out.
+    dy, db = read(d / "themis_day_ir_100m.tif")
+    dy[dy == 0] = np.nan
+    fill = np.nanmedian(dy)
+    big = np.array(Image.fromarray(np.nan_to_num(dy, nan=fill).astype("uint8")).resize((960, 1200), Image.BICUBIC), "float32")
+    lo, hi = np.percentile(big, [1, 99.5])
+    v = np.clip((big - lo) / (hi - lo), 0, 1)
+    color = ramp(v, [(0, (28, 16, 11)), (0.45, (120, 74, 50)), (0.8, (196, 142, 102)), (1, (238, 206, 170))])
+    save_rgba(color, np.full(v.shape, 255), out / "base.webp")
+    layers["base"] = bounds_latlon(db)
 
     return layers, hazard_share
 

@@ -24,12 +24,22 @@ export class MapView {
     this.pins = [];
 
     const [[s, w], [n, e]] = site.layers.photo;
-    const tb = site.layers.thermal;
+    // The wide THEMIS backdrop sets how far you can pan and zoom out, so the
+    // view always stays on real ground instead of empty black.
+    const wide = L.latLngBounds(site.layers.base || site.layers.thermal);
     this.map = L.map("leaflet", {
       zoomSnap: 0.25, zoomControl: false, attributionControl: true, minZoom: 11, maxZoom: 18,
-      maxBounds: L.latLngBounds(tb).pad(0.05), preferCanvas: false,
+      maxBounds: wide, maxBoundsViscosity: 1, preferCanvas: false,
     });
+    this.wide = wide;
+    this.fitMinZoom();
     this.map.fitBounds([[s, w], [n, e]], { padding: [10, 10] });
+    this.map.on("resize", () => this.fitMinZoom());
+    if (site.layers.base) {
+      L.imageOverlay("assets/layers/base.webp", site.layers.base, { interactive: false, className: "ov-base" })
+        .on("add", (ev) => { ev.target.getElement().style.zIndex = 0; })
+        .addTo(this.map);
+    }
     this.map.attributionControl.setPrefix(false);
     this.map.attributionControl.addAttribution("NASA/JPL-Caltech/Univ. of Arizona, USGS, ASU");
     L.control.zoom({ position: "topright" }).addTo(this.map);
@@ -41,6 +51,12 @@ export class MapView {
     this.buildStops();
     this.buildReadout();
     this.map.on("click", (ev) => this.onPick([ev.latlng.lat, ev.latlng.lng]));
+  }
+
+  // Lowest zoom at which the backdrop still covers the whole map view.
+  fitMinZoom() {
+    const z = this.map.getBoundsZoom(this.wide, true);
+    this.map.setMinZoom(Math.max(10, Math.ceil(z * 4) / 4));
   }
 
   buildLayers() {

@@ -24,7 +24,7 @@ from pathlib import Path
 
 import numpy as np
 import rasterio
-from PIL import Image
+from PIL import Image, ImageFilter
 from rasterio.enums import Resampling
 
 MARS_RADIUS_M = 3396190.0
@@ -112,6 +112,7 @@ def build_layers(d, out):
     rgb = np.dstack([g * 1.0, g * 0.93, g * 0.86])  # a faint warm tint
     save_rgba(rgb, np.where(np.isnan(photo), 0, 255), out / "photo.webp", 72)
     layers["photo"] = bounds_latlon(b)
+    photo_tone = (g / 255)[np.isfinite(g)]  # reused to tone-match the backdrop
 
     # Terrain: hillshade blended with a height-colored ramp.
     elev, b = read(d / "elevation_hirise_2m.tif", 1000, 1500)
@@ -156,16 +157,21 @@ def build_layers(d, out):
     layers["thermal"] = bounds_latlon(tb)
 
     # Wide backdrop: THEMIS day infrared, which reads like a shaded relief photo
-    # of the whole 24 x 30 km box. Tinted dusty tan so the map never shows empty
-    # black around the small HiRISE strip when you zoom out.
+    # of the whole 24 x 30 km box, so the map never shows empty black around the
+    # small HiRISE strip when you zoom out. It gets the same grey and warm tint
+    # as the HiRISE photo, matched to the photo's brightness, so the strip sits
+    # in it instead of looking pasted on.
     dy, db = read(d / "themis_day_ir_100m.tif")
     dy[dy == 0] = np.nan
     fill = np.nanmedian(dy)
-    big = np.array(Image.fromarray(np.nan_to_num(dy, nan=fill).astype("uint8")).resize((960, 1200), Image.BICUBIC), "float32")
-    lo, hi = np.percentile(big, [1, 99.5])
-    v = np.clip((big - lo) / (hi - lo), 0, 1)
-    color = ramp(v, [(0, (28, 16, 11)), (0.45, (120, 74, 50)), (0.8, (196, 142, 102)), (1, (238, 206, 170))])
-    save_rgba(color, np.full(v.shape, 255), out / "base.webp")
+    img = Image.fromarray(np.nan_to_num(dy, nan=fill).astype("uint8")).resize((960, 1200), Image.BICUBIC)
+    img = img.filter(ImageFilter.UnsharpMask(radius=3, percent=90, threshold=2))
+    big = np.array(img, "float32")
+    v = np.clip((big - np.percentile(big, 1)) / (np.percentile(big, 99.5) - np.percentile(big, 1)), 0, 1)
+    # quantile-match the backdrop's tones to the photo's
+    q = np.linspace(0, 1, 101)
+    g = np.interp(v, np.quantile(v, q), np.quantile(photo_tone, q)) * 255
+    save_rgba(np.dstack([g * 1.0, g * 0.93, g * 0.86]), np.full(v.shape, 255), out / "base.webp")
     layers["base"] = bounds_latlon(db)
 
     return layers, hazard_share

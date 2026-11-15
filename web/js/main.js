@@ -238,7 +238,8 @@ function selectStop(id, fly = false) {
   document.querySelectorAll(".stop-card").forEach((c) => c.setAttribute("aria-pressed", String(+c.dataset.id === id)));
   state.map.highlightStop(id);
   if (fly) state.map.flyTo([s.lat, s.lon]);
-  const cam = (c) => (c.startsWith("MAST") ? "Mastcam" : "Navcam");
+  const CAMS = { MAST: "Mastcam", NAV: "Navcam", FHAZ: "Hazcam", RHAZ: "Hazcam", HAZ: "Hazcam", CHEMCAM: "ChemCam", MAHLI: "MAHLI" };
+  const cam = (c) => CAMS[c.split("_")[0]] ?? "Rover camera";
   const solText = s.sols[0] === s.sols[1] ? `sol ${s.sols[0]}` : `sols ${s.sols[0]} to ${s.sols[1]}`;
   $(".stop-detail").innerHTML = `
     <div class="panel stop-panel">

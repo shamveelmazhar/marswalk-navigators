@@ -40,6 +40,16 @@ All the maps share one Mars map grid (equirectangular, Mars radius 3,396,190 m),
 
 A few numbers to give a feel for the place: half the area is gentler than 11°, but about a third of it is steeper than 15°, so route choice really matters. The radiation dose works out to about 0.16 milligray per sol.
 
+## Wheel load cases for FEA
+
+```bash
+python -m marswalk.loads
+```
+
+This reads the slope and roughness under Curiosity's real stops on Mount Sharp and turns them into the forces on one rover wheel in five situations: parked, climbing, parked across a slope, driving onto a ledge, and a sharp rock pressing into the skin. The forces are saved to `fea/wheel_load_cases.csv`, ready to apply in Ansys or SolidWorks. It also prints a quick hand calculation of the wheel skin. That calculation shows a 0.75 mm aluminum skin yielding under a pointed rock, which is just what happened to Curiosity's wheels.
+
+The full setup for the FEA model (geometry, material, mesh, supports and what to check) is in [docs/fea-setup.md](docs/fea-setup.md).
+
 ## Code layout
 
 - `marswalk/site.py`: the site boundaries, the data sources, and conversion between latitude/longitude and map coordinates
@@ -48,6 +58,7 @@ A few numbers to give a feel for the place: half the area is gentler than 11°, 
 - `marswalk/radiation.py`: reads dose rates out of the RAD files
 - `marswalk/rover.py`: Curiosity's path, stops and photos
 - `marswalk/build.py`: runs everything above in order
+- `marswalk/loads.py`: wheel load cases for FEA, and a hand check of the wheel skin
 
 Run the tests with `pytest`.
 

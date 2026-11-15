@@ -546,3 +546,17 @@ h2 {
   html { scroll-behavior: auto; }
   *, *::before, *::after { transition: none !important; }
 }
+
+/* Soften the edges of the HiRISE strip layers so they fade into the wide
+   THEMIS backdrop instead of ending in a hard rectangle. */
+.leaflet-image-layer.ov-photo,
+.leaflet-image-layer.ov-terrain,
+.leaflet-image-layer.ov-slope,
+.leaflet-image-layer.ov-hazard {
+  -webkit-mask-image: linear-gradient(to right, transparent, #000 5%, #000 95%, transparent),
+                      linear-gradient(to bottom, transparent, #000 3.5%, #000 96.5%, transparent);
+  -webkit-mask-composite: source-in;
+  mask-image: linear-gradient(to right, transparent, #000 5%, #000 95%, transparent),
+              linear-gradient(to bottom, transparent, #000 3.5%, #000 96.5%, transparent);
+  mask-composite: intersect;
+}

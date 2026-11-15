@@ -290,6 +290,8 @@ def science_stops(d, waypoints, dose_by_sol, count=8):
         note = notes.get(str(s["sols"][0]))
         if note:
             s.update({k: note[k] for k in ("title", "blurb", "feature")})
+            if "photos" in note:  # Fizza's hand-picked shots, saved under web/assets/img/stops/
+                s["photos"] = note["photos"]
     return stops, len(rows)
 
 

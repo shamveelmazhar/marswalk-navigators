@@ -1,4 +1,4 @@
-"""Tests for the Marswalk Mission Briefing Assistant."""
+"""Tests for the Marswalk mission briefing."""
 import pytest
 from marswalk.assistant import generate_mission_briefing, find_nearby_science_stops
 from marswalk.budgets import compute_wheel_load_cases
@@ -61,10 +61,10 @@ def test_generate_mission_briefing_structure():
     assert briefing["is_go"] is True
     assert "GO FOR EVA" in briefing["status"]
     assert "briefing_markdown" in briefing
-    assert "# 🔴 MARSWALK MISSION BRIEFING" in briefing["briefing_markdown"]
-    assert "Life-Support" in briefing["briefing_markdown"]
+    assert briefing["briefing_markdown"].startswith("# Marswalk briefing")
+    assert "What it costs the crew member" in briefing["briefing_markdown"]
     assert "Radiation" in briefing["briefing_markdown"]
-    assert "NASA 30-day limit" in briefing["briefing_markdown"]
+    assert "30-day limit" in briefing["briefing_markdown"]
     assert "Oxygen" in briefing["briefing_markdown"]
     assert "Stop 1" in briefing["briefing_markdown"]
     assert len(briefing["hazard_warnings"]) > 0
@@ -144,3 +144,12 @@ def test_briefing_reads_limits_from_profiles():
     briefing_astronaut = generate_mission_briefing(route_steep, walk_b, drive_b, load_cs, [])
     assert briefing_astronaut["is_go"] is True
     assert "GO FOR EVA" in briefing_astronaut["status"]
+
+
+def test_briefing_rover_note_replaces_rover_budget():
+    route = {"agent": "astronaut", "route_distance_m": 500.0, "max_slope_deg": 10.0, "max_roughness_m": 0.3}
+    walk_b = {"duration_hours": 0.5, "eva_limit_utilization_pct": 6.25}
+    briefing = generate_mission_briefing(route, walk_b, {}, [], [], rover_note="The rover has no safe route.")
+    md = briefing["briefing_markdown"]
+    assert "The rover has no safe route." in md
+    assert "Driving time" not in md

@@ -1,5 +1,17 @@
 {
-  "_about": "Names, short write-ups and a featured NASA photo for each science stop, keyed by the first sol of the stop. Researched by Fizza from the Curiosity mission blog and NASA image pages. build_web_data.py merges these into web/data/site.json.",
+  "_about": "Names, short write-ups and a featured NASA photo for each science stop, keyed by the first sol of the stop. Researched by Fizza from the Curiosity mission blog and NASA image pages. build_web_data.py merges these into web/data/site.json. Where a stop has a \"photos\" list, those are Fizza's hand-picked rover images (saved in web/assets/img/stops/) and they replace the automatic pick from the raw-image catalog.",
+  "4532": {
+    "title": "Polygon Heaven: Fractured Bedrock",
+    "blurb": "Curiosity investigated polygon-shaped cracks in the bedrock that may have formed as ancient sediments dried out or through later groundwater activity, offering clues about Mars' changing environment.",
+    "feature": {"img": "https://assets.science.nasa.gov/dynamicimage/assets/science/missions/msl/2025/mosaics/05/N_R000_4532_EDR115CYLASB2616_AUTOLM1.PNG?w=1200", "page": "https://science.nasa.gov/resource/sol-4532-right-navigation-camera-cylindrical-projection/", "caption": "Navcam panorama, sol 4532"},
+    "photos": [
+      {"url": "assets/img/stops/sol-4532-navcam-4532-1.jpg", "camera": "NAV_LEFT_B", "sol": 4532},
+      {"url": "assets/img/stops/sol-4533-navcam-4532-2.jpg", "camera": "NAV_LEFT_B", "sol": 4533},
+      {"url": "assets/img/stops/sol-4532-mastcam-4532-3.jpg", "camera": "MAST_RIGHT", "sol": 4532},
+      {"url": "assets/img/stops/sol-4532-hazcam-4532-4.jpg", "camera": "FHAZ", "sol": 4532},
+      {"url": "assets/img/stops/sol-4532-chemcam-4532-5.jpg", "camera": "CHEMCAM_RMI", "sol": 4532}
+    ]
+  },
   "4537": {
     "title": "Early Boxwork Bedrock",
     "blurb": "Curiosity examined rocky terrain near the emerging boxwork formations, investigating bedrock textures and chemistry to better understand the region's geological history.",
@@ -18,21 +30,48 @@
   "4560": {
     "title": "Altadena Drill Site",
     "blurb": "Curiosity drilled into ancient boxwork-region bedrock here and analyzed the rock powder for minerals and chemical clues about Mars' past water conditions.",
-    "feature": {"img": "https://mars.nasa.gov/msl-raw-images/msss/04564/mcam/4564MR1077420012302300E01_DXXX.jpg", "page": "https://science.nasa.gov/blog/curiosity-blog-sols-4568-4569-a-close-look-at-the-altadena-drill-hole-and-tailings/", "caption": "Mastcam, Altadena drill hole, sol 4564"}
+    "feature": {"img": "https://mars.nasa.gov/msl-raw-images/msss/04564/mcam/4564MR1077420012302300E01_DXXX.jpg", "page": "https://science.nasa.gov/blog/curiosity-blog-sols-4568-4569-a-close-look-at-the-altadena-drill-hole-and-tailings/", "caption": "Mastcam, Altadena drill hole, sol 4564"},
+    "photos": [
+      {"url": "assets/img/stops/sol-4570-mahli-4560-1.jpg", "camera": "MAHLI", "sol": 4570},
+      {"url": "assets/img/stops/sol-4564-mastcam-4560-2.jpg", "camera": "MAST_RIGHT", "sol": 4564},
+      {"url": "assets/img/stops/sol-4570-chemcam-4560-3.jpg", "camera": "CHEMCAM_RMI", "sol": 4570},
+      {"url": "assets/img/stops/sol-4570-navcam-4560-4.jpg", "camera": "NAV_LEFT_B", "sol": 4570}
+    ]
   },
   "4575": {
     "title": "Copacabana-Copiapo Boxwork Trough",
     "blurb": "Curiosity studied fractured bedrock inside a boxwork trough to investigate mineral deposits and chemical evidence of ancient groundwater activity.",
-    "feature": {"img": "https://mars.nasa.gov/msl-raw-images/proj/msl/redops/ods/surface/sol/04575/opgs/edr/ncam/NRB_803647451EDR_F1170000NCAM00274M_.JPG", "page": "https://science.nasa.gov/blog/curiosity-blog-sols-4577-4579-watch-the-skies/", "caption": "Navcam, boxwork trough, sol 4575"}
+    "feature": {"img": "https://mars.nasa.gov/msl-raw-images/proj/msl/redops/ods/surface/sol/04575/opgs/edr/ncam/NRB_803647451EDR_F1170000NCAM00274M_.JPG", "page": "https://science.nasa.gov/blog/curiosity-blog-sols-4577-4579-watch-the-skies/", "caption": "Navcam, boxwork trough, sol 4575"},
+    "photos": [
+      {"url": "assets/img/stops/sol-4577-mastcam-4575-1.jpg", "camera": "MAST_RIGHT", "sol": 4577},
+      {"url": "assets/img/stops/sol-4577-mastcam-4575-2.jpg", "camera": "MAST_RIGHT", "sol": 4577},
+      {"url": "assets/img/stops/sol-4577-mastcam-4575-3.jpg", "camera": "MAST_RIGHT", "sol": 4577},
+      {"url": "assets/img/stops/sol-4576-navcam-4575-4.jpg", "camera": "NAV_LEFT_B", "sol": 4576},
+      {"url": "assets/img/stops/sol-4577-navcam-4575-5.jpg", "camera": "NAV_LEFT_B", "sol": 4577}
+    ]
   },
   "4580": {
     "title": "Hornitos Veined Bedrock",
     "blurb": "Curiosity examined possible mineral veins cutting through the bedrock, offering clues about ancient groundwater activity in Gale Crater.",
-    "feature": {"img": "https://mars.nasa.gov/msl-raw-images/proj/msl/redops/ods/surface/sol/04578/opgs/edr/ncam/NLB_803914367EDR_S1170168NCAM00278M_.JPG", "page": "https://science.nasa.gov/blog/curiosity-blog-sols-4580-4581-something-in-the-air/", "caption": "Navcam, sol 4578"}
+    "feature": {"img": "https://mars.nasa.gov/msl-raw-images/proj/msl/redops/ods/surface/sol/04578/opgs/edr/ncam/NLB_803914367EDR_S1170168NCAM00278M_.JPG", "page": "https://science.nasa.gov/blog/curiosity-blog-sols-4580-4581-something-in-the-air/", "caption": "Navcam, sol 4578"},
+    "photos": [
+      {"url": "assets/img/stops/sol-4580-navcam-4580-1.jpg", "camera": "NAV_LEFT_B", "sol": 4580},
+      {"url": "assets/img/stops/sol-4580-chemcam-4580-2.jpg", "camera": "CHEMCAM_RMI", "sol": 4580},
+      {"url": "assets/img/stops/sol-4580-navcam-4580-3.jpg", "camera": "NAV_LEFT_B", "sol": 4580},
+      {"url": "assets/img/stops/sol-4580-navcam-4580-4.jpg", "camera": "NAV_LEFT_B", "sol": 4580},
+      {"url": "assets/img/stops/sol-4580-hazcam-4580-5.jpg", "camera": "HAZ", "sol": 4580}
+    ]
   },
   "4588": {
     "title": "Guapay Ridges & Troughs",
     "blurb": "Curiosity compared harder, resistant bedrock with lower, eroded troughs to understand why different parts of the boxwork terrain weather differently.",
-    "feature": {"img": "https://assets.science.nasa.gov/dynamicimage/assets/science/missions/msl/2025/mosaics/07/N_R000_4588_EDR117CYLASB1008_AUTOLM1.PNG?w=1200", "page": "https://science.nasa.gov/resource/sol-4588-right-navigation-camera-cylindrical-projection/", "caption": "Navcam panorama, sol 4588"}
+    "feature": {"img": "https://assets.science.nasa.gov/dynamicimage/assets/science/missions/msl/2025/mosaics/07/N_R000_4588_EDR117CYLASB1008_AUTOLM1.PNG?w=1200", "page": "https://science.nasa.gov/resource/sol-4588-right-navigation-camera-cylindrical-projection/", "caption": "Navcam panorama, sol 4588"},
+    "photos": [
+      {"url": "assets/img/stops/sol-4590-mastcam-4588-1.jpg", "camera": "MAST_RIGHT", "sol": 4590},
+      {"url": "assets/img/stops/sol-4588-navcam-4588-2.jpg", "camera": "NAV_LEFT_B", "sol": 4588},
+      {"url": "assets/img/stops/sol-4590-mastcam-4588-3.jpg", "camera": "MAST_RIGHT", "sol": 4590},
+      {"url": "assets/img/stops/sol-4590-navcam-4588-4.jpg", "camera": "NAV_LEFT_B", "sol": 4590},
+      {"url": "assets/img/stops/sol-4590-chemcam-4588-5.jpg", "camera": "CHEMCAM_RMI", "sol": 4590}
+    ]
   }
 }

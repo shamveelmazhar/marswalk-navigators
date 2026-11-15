@@ -251,6 +251,7 @@ h2 {
   background: rgba(7,8,10,.78); border: 1px solid var(--line); padding: 6px 10px; font-size: 0.72rem; border-radius: 2px;
   max-width: calc(100% - 24px);
 }
+@media (max-width: 720px) { .map-hint { max-width: calc(100% - 64px); } }
 .map-readout {
   position: absolute; left: 12px; bottom: 12px; z-index: 500; pointer-events: none;
   background: rgba(7,8,10,.82); border: 1px solid var(--line); padding: 6px 10px; font-size: 0.72rem; border-radius: 2px;
@@ -398,6 +399,21 @@ h2 {
 .check-note { margin-top: 16px; }
 
 /* ---------- budgets ---------- */
+.briefing { margin-top: 28px; padding: 22px; }
+.briefing-head { display: flex; justify-content: space-between; align-items: center; gap: 16px; flex-wrap: wrap; }
+.briefing-head .panel-title { margin: 0 0 4px; }
+.briefing-head p { margin: 0; max-width: 62ch; }
+.briefing-out { margin-top: 18px; border-top: 1px solid var(--line); padding-top: 16px; display: grid; gap: 14px; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); }
+.briefing-out[hidden] { display: none; }
+.briefing-call { grid-column: 1 / -1; font-size: 0.95rem; margin: 0; }
+.briefing-call b { text-transform: uppercase; letter-spacing: 0.1em; font-size: 0.8rem; margin-right: 6px; }
+.briefing-call .go { color: var(--go); }
+.briefing-call .warn { color: var(--caution); }
+.briefing-out h4 { font-weight: 500; text-transform: uppercase; letter-spacing: 0.12em; font-size: 0.66rem; color: var(--ink-2); margin: 0 0 6px; }
+.briefing-out p, .briefing-out li { font-size: 0.86rem; line-height: 1.55; color: var(--ink); margin: 0; }
+.briefing-out ul { margin: 0; padding-left: 1.1em; display: grid; gap: 4px; }
+.briefing-wide { grid-column: 1 / -1; }
+
 .budgets { background: var(--bg-2); }
 .budget-grid {
   display: grid; grid-template-columns: repeat(4, 1fr); border-top: 1px solid var(--line-strong); border-bottom: 1px solid var(--line-strong);

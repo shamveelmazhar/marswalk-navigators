@@ -305,7 +305,7 @@ function renderBudgets() {
     { k: "Radiation dose", v: w ? fmt(w.doseUGy, 1) : dash, u: "µGy", p: w ? `${fmt((w.hours / SOL_HOURS) * 100, 1)}% of a full sol outside, at the ${state.site.stats.dose_uGy_h} µGy/h Curiosity measured here.` : "" },
     { k: "Rover route", v: d ? fmt(r.stats.dist3dM / 1000, 2) : dash, u: "km", p: r?.ok ? `The rover's own route. Its steepest ground is ${fmt(r.stats.maxSlopeDeg)}°.` : r ? r.reason : "" },
     { k: "Rover drive energy", v: d ? fmt(d.wh) : dash, u: "Wh", p: "Rolling resistance and climbing, through the drivetrain, plus electronics while driving." },
-    { k: "Rover drive time", v: d ? hm(d.hours) : dash, p: `At ${state.rover.speedMs} m/s. Curiosity itself drives at up to 0.04 m/s.` },
+    { k: "Rover drive time", v: d ? hm(d.hours) : dash, p: `At ${state.rover.speedMs} m/s, a cautious pace for a crewed support rover. Curiosity, driving itself, manages 0.04 m/s.` },
   ];
   grid.innerHTML = items.map((it) => `
     <dl class="budget"><dt>${it.k}</dt><dd><div class="big">${it.v}${it.u && it.v !== dash ? `<small>${it.u.replace("µ", '<span class="nu">µ</span>')}</small>` : ""}</div>

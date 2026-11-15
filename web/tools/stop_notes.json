@@ -1,0 +1,38 @@
+{
+  "_about": "Names, short write-ups and a featured NASA photo for each science stop, keyed by the first sol of the stop. Researched by Fizza from the Curiosity mission blog and NASA image pages. build_web_data.py merges these into web/data/site.json.",
+  "4537": {
+    "title": "Early Boxwork Bedrock",
+    "blurb": "Curiosity examined rocky terrain near the emerging boxwork formations, investigating bedrock textures and chemistry to better understand the region's geological history.",
+    "feature": {"img": "https://assets.science.nasa.gov/dynamicimage/assets/science/missions/msl/2025/mosaics/05/N_R000_4537_EDR116CYLASB0156_AUTOLM2.png?w=1200", "page": "https://science.nasa.gov/resource/sol-4537-right-navigation-camera-cylindrical-projection/", "caption": "Navcam panorama, sol 4537"}
+  },
+  "4541": {
+    "title": "First Boxwork Ridge",
+    "blurb": "One of Curiosity's first close investigations of boxwork formations, where mineral deposits from ancient groundwater may reveal Mars' past water history.",
+    "feature": {"img": "https://assets.science.nasa.gov/dynamicimage/assets/science/psd/photojournal/pia/pia26/pia26558/PIA26558.jpg?w=1200", "page": "https://science.nasa.gov/photojournal/curiosity-views-a-fractured-boxwork-pattern-up-close/", "caption": "Mastcam mosaic, sol 4541"}
+  },
+  "4548": {
+    "title": "Boxwork Bedrock & Troughs",
+    "blurb": "Curiosity studied exposed bedrock and troughs near emerging boxwork ridges, providing evidence to investigate how Martian rocks were altered and eroded.",
+    "feature": {"img": "https://assets.science.nasa.gov/dynamicimage/assets/science/missions/msl/2025/mosaics/06/N_R000_4548_EDR116CYLASB1260_AUTOLM2.PNG?w=1200", "page": "https://science.nasa.gov/resource/sol-4548-right-navigation-camera-cylindrical-projection-2/", "caption": "Navcam panorama, sol 4548"}
+  },
+  "4560": {
+    "title": "Altadena Drill Site",
+    "blurb": "Curiosity drilled into ancient boxwork-region bedrock here and analyzed the rock powder for minerals and chemical clues about Mars' past water conditions.",
+    "feature": {"img": "https://mars.nasa.gov/msl-raw-images/msss/04564/mcam/4564MR1077420012302300E01_DXXX.jpg", "page": "https://science.nasa.gov/blog/curiosity-blog-sols-4568-4569-a-close-look-at-the-altadena-drill-hole-and-tailings/", "caption": "Mastcam, Altadena drill hole, sol 4564"}
+  },
+  "4575": {
+    "title": "Copacabana-Copiapo Boxwork Trough",
+    "blurb": "Curiosity studied fractured bedrock inside a boxwork trough to investigate mineral deposits and chemical evidence of ancient groundwater activity.",
+    "feature": {"img": "https://mars.nasa.gov/msl-raw-images/proj/msl/redops/ods/surface/sol/04575/opgs/edr/ncam/NRB_803647451EDR_F1170000NCAM00274M_.JPG", "page": "https://science.nasa.gov/blog/curiosity-blog-sols-4577-4579-watch-the-skies/", "caption": "Navcam, boxwork trough, sol 4575"}
+  },
+  "4580": {
+    "title": "Hornitos Veined Bedrock",
+    "blurb": "Curiosity examined possible mineral veins cutting through the bedrock, offering clues about ancient groundwater activity in Gale Crater.",
+    "feature": {"img": "https://mars.nasa.gov/msl-raw-images/proj/msl/redops/ods/surface/sol/04578/opgs/edr/ncam/NLB_803914367EDR_S1170168NCAM00278M_.JPG", "page": "https://science.nasa.gov/blog/curiosity-blog-sols-4580-4581-something-in-the-air/", "caption": "Navcam, sol 4578"}
+  },
+  "4588": {
+    "title": "Guapay Ridges & Troughs",
+    "blurb": "Curiosity compared harder, resistant bedrock with lower, eroded troughs to understand why different parts of the boxwork terrain weather differently.",
+    "feature": {"img": "https://assets.science.nasa.gov/dynamicimage/assets/science/missions/msl/2025/mosaics/07/N_R000_4588_EDR117CYLASB1008_AUTOLM1.PNG?w=1200", "page": "https://science.nasa.gov/resource/sol-4588-right-navigation-camera-cylindrical-projection/", "caption": "Navcam panorama, sol 4588"}
+  }
+}

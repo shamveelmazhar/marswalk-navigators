@@ -215,12 +215,14 @@ const hm = (h) => {
 };
 
 /* ---------- stops ---------- */
+const esc = (v) => String(v).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
+
 function initStops() {
   const rail = $(".stop-rail");
   rail.innerHTML = state.site.stops.map((s) => `
     <button class="stop-card" role="listitem" aria-pressed="false" data-id="${s.id}">
-      <div class="thumb" style="background-image:url('${s.photos[0]?.url ?? ""}')"></div>
-      <div class="meta"><b>${s.name}</b><span>Sol ${s.sols[0]} · ${fmt(s.elev_m)} m</span></div>
+      <div class="thumb" style="background-image:url('${s.feature?.img ?? s.photos[0]?.url ?? ""}')"></div>
+      <div class="meta"><b>${s.name}</b>${s.title ? `<em>${esc(s.title)}</em>` : ""}<span>Sol ${s.sols[0]} · ${fmt(s.elev_m)} m</span></div>
     </button>`).join("");
   rail.addEventListener("click", (e) => {
     const b = e.target.closest(".stop-card");
@@ -239,7 +241,8 @@ function selectStop(id, fly = false) {
   $(".stop-detail").innerHTML = `
     <div class="panel stop-panel">
       <div>
-        <h3>${s.name}</h3>
+        <h3>${s.title ? `${s.name} · ${esc(s.title)}` : s.name}</h3>
+        ${s.blurb ? `<p class="stop-blurb">${esc(s.blurb)}</p>` : ""}
         <p class="muted small">Curiosity parked here on ${solText} and took ${fmt(s.photo_count)} pictures.</p>
         <dl class="kv">
           <dt>Height</dt><dd>${fmt(s.elev_m)} m</dd>
@@ -250,6 +253,7 @@ function selectStop(id, fly = false) {
         <button class="btn" data-go="${s.id}">Walk here from A</button>
       </div>
       <div class="stop-photos">
+        ${s.feature ? `<a class="feature" href="${s.feature.page}" target="_blank" rel="noopener" style="background-image:url('${s.feature.img}')" aria-label="${esc(s.feature.caption)}, opens the NASA page"><span>NASA · ${esc(s.feature.caption)}</span></a>` : ""}
         ${s.photos.map((p) => `<a href="${p.url}" target="_blank" rel="noopener" style="background-image:url('${p.url}')" aria-label="${cam(p.camera)} photo from sol ${p.sol}, opens full size"><span>${cam(p.camera)} · sol ${p.sol}</span></a>`).join("")}
       </div>
     </div>`;

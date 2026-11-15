@@ -271,6 +271,11 @@ def science_stops(d, waypoints, dose_by_sol, count=8):
             "dose_uGy_h": round(float(np.mean(dose)), 2) if dose else None,
             "photos": [{"url": x["image_url"], "camera": x["camera"], "sol": int(x["sol"]), "taken": x["date_taken_utc"]} for x in chosen],
         })
+    notes = json.load(open(Path(__file__).with_name("stop_notes.json")))
+    for s in stops:
+        note = notes.get(str(s["sols"][0]))
+        if note:
+            s.update({k: note[k] for k in ("title", "blurb", "feature")})
     return stops, len(rows)
 
 

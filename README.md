@@ -87,10 +87,13 @@ All of it is public NASA and USGS data:
 - Curiosity's traverse and waypoints from NASA's [mission map](https://mars.nasa.gov/maps/location/?mission=Curiosity)
 - Curiosity raw images from the [NASA raw image site](https://mars.nasa.gov/msl/multimedia/raw-images/)
 - RAD radiation data from the [Planetary Data System](https://pds-ppi.igpp.ucla.edu/data/MSL-M-RAD-3-RDR-V1.0/)
+- REMS weather (daily air and ground temperature, pressure, UV) from the REMS team at [Centro de Astrobiología](https://cab.inta-csic.es/rems/en/), through NASA's [Mars weather feed](https://mars.nasa.gov/msl/weather/). `web/tools/fetch_rems.py` pulls it into `web/data/`
 
-## What's next
+## Weather and the atmosphere
 
-The challenge asks for topographic, thermal and atmospheric data. We have the first two in detail, and the atmosphere shows up through the RAD dose, which is measured under it. The next layer we want is weather from Curiosity's REMS station: air temperature, pressure, dust and wind for the same sols. That would let us flag cold or dusty days and work suit heating and the rover's solar power into the plan.
+The challenge asks for topographic, thermal and atmospheric data. The atmosphere comes in two ways. The RAD dose is measured under it, so it already includes the shielding from the thin air. And Curiosity's REMS weather station gives us the weather for the same sols, 4489 to 4612: daytime air around -26 °C, nights near -80 °C, ground from about -91 °C to -10 °C, and pressure between 727 and 844 Pa. The site plots it next to the radiation and uses the afternoon temperatures in a suit cooling budget, which is how much body heat the backpack has to carry away once the suit has radiated what it can to the cold ground and sky.
+
+REMS stopped reporting humidity and wind a while ago, so those aren't in our data. Dust storms and the rover's solar power are what we'd add next.
 
 ## Tools we used
 

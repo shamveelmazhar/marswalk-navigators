@@ -1,5 +1,5 @@
 import { TerrainGrid, AGENTS } from "./terrain.js";
-import { pathStats, walkBudget, driveBudget, loadCases, casesToCsv, ROVER_DEFAULTS, EVA_HOURS, SOL_HOURS } from "./physics.js";
+import { pathStats, walkBudget, driveBudget, loadCases, casesToCsv, ROVER_DEFAULTS, EVA_HOURS, SOL_HOURS, suitHeat } from "./physics.js";
 import { lineChart } from "./charts.js";
 import { chapters, initHero } from "./hero.js";
 import { MapView } from "./map.js";
@@ -15,6 +15,7 @@ const state = {
   routes: { astronaut: null, rover: null },
   rover: { ...ROVER_DEFAULTS },
   activeStop: null,
+  weather: null,              // REMS daily weather, optional: the page works without it
 };
 
 initNav();
@@ -25,10 +26,12 @@ boot().catch((err) => {
 });
 
 async function boot() {
-  const [site, traverse] = await Promise.all([
+  const [site, traverse, weather] = await Promise.all([
     fetch("data/site.json").then((r) => r.json()),
     fetch("data/traverse.json").then((r) => r.json()),
+    fetch("data/weather.json").then((r) => (r.ok ? r.json() : null)).catch(() => null),
   ]);
+  state.weather = weather?.series?.length ? weather : null;
   site.traverse = traverse;
   state.site = site;
   document.querySelectorAll('[data-stat="rad_readings"]').forEach((n) => (n.textContent = fmt(site.stats.rad_readings)));
@@ -42,6 +45,7 @@ async function boot() {
   initHazardBars();
   initRoverForm();
   drawDoseChart();
+  initWeather();
   initBriefing();
   $(".source-note").textContent = apiBase()
     ? `Routes come from the team planner at ${apiBase()}. If it doesn't answer, the browser works them out instead.`
@@ -55,7 +59,7 @@ async function boot() {
   let resizeT;
   window.addEventListener("resize", () => {
     clearTimeout(resizeT);
-    resizeT = setTimeout(() => { renderRoutePanel(); drawDoseChart(); state.map.invalidate(); }, 150);
+    resizeT = setTimeout(() => { renderRoutePanel(); drawDoseChart(); drawWeatherChart(); state.map.invalidate(); }, 150);
   });
 }
 
@@ -303,14 +307,66 @@ function renderBudgets() {
     { k: "Energy burned", v: w ? fmt(w.kcal) : dash, u: "kcal", p: "Pandolf's walking equation, scaled to Mars gravity, for a person and a 70 kg suit." },
     { k: "Oxygen used", v: w ? fmt(w.o2Kg, 2) : dash, u: "kg", p: "Metabolic oxygen only. Suits carry about 0.5 to 1 kg for a full spacewalk." },
     { k: "Radiation dose", v: w ? fmt(w.doseUGy, 1) : dash, u: "µGy", p: w ? `${fmt((w.hours / SOL_HOURS) * 100, 1)}% of a full sol outside, at the ${state.site.stats.dose_uGy_h} µGy/h Curiosity measured here.` : "" },
+    ...(state.weather ? [suitCard(w)] : []),
     { k: "Rover route", v: d ? fmt(r.stats.dist3dM / 1000, 2) : dash, u: "km", p: r?.ok ? `The rover's own route. Its steepest ground is ${fmt(r.stats.maxSlopeDeg)}°.` : r ? r.reason : "" },
     { k: "Rover drive energy", v: d ? fmt(d.wh) : dash, u: "Wh", p: "Rolling resistance and climbing, through the drivetrain, plus electronics while driving." },
     { k: "Rover drive time", v: d ? hm(d.hours) : dash, p: `At ${state.rover.speedMs} m/s, a cautious pace for a crewed support rover. Curiosity, driving itself, manages 0.04 m/s.` },
   ];
+  grid.classList.toggle("three", items.length === 9);
   grid.innerHTML = items.map((it) => `
     <dl class="budget"><dt>${it.k}</dt><dd><div class="big">${it.v}${it.u && it.v !== dash ? `<small>${it.u.replace("µ", '<span class="nu">µ</span>')}</small>` : ""}</div>
     ${it.meter != null ? `<div class="meter${it.meter > 0.5 ? " over" : ""}" role="img" aria-label="${fmt(it.meter * 100)}% of an ${EVA_HOURS} hour spacewalk"><i style="width:${Math.min(100, it.meter * 100)}%"></i></div>` : ""}
     <p>${it.p}</p></dd></dl>`).join("");
+}
+
+// Heat the suit's cooling loop has to carry away while walking, against a typical
+// afternoon in REMS's record (crews walk in daylight, so we use the daily highs).
+function walkHeat(w) {
+  const m = state.weather.mean;
+  return suitHeat((w.kJ * 1000) / (w.hours * 3600), m.airMax, m.groundMax);
+}
+
+function suitCard(w) {
+  const m = state.weather.mean;
+  const h = w && w.hours > 0 ? walkHeat(w) : null;
+  return {
+    k: "Suit cooling load", v: h ? fmt(h.rejectW) : "–", u: "W",
+    p: h
+      ? `The walk makes about ${fmt(h.metabolicW)} W of body heat. At the ${fmt(m.airMax)} °C air and ${fmt(m.groundMax)} °C ground REMS logged on a typical afternoon, the suit sheds about ${fmt(h.lostW)} W on its own, so the backpack has to remove the rest.`
+      : `Uses the afternoon air and ground temperatures REMS measured here.`,
+  };
+}
+
+function initWeather() {
+  const wx = state.weather;
+  if (!wx) return;
+  const c = (v) => `${fmt(v)} °C`;
+  const vals = {
+    sols: `sol ${wx.sols[0]} to ${wx.sols[1]}`,
+    airMax: c(wx.mean.airMax), airMin: c(wx.mean.airMin),
+    groundMin: c(wx.mean.groundMin), groundMax: c(wx.mean.groundMax),
+    pressure: `${fmt(wx.range.pressurePa[0])} and ${fmt(wx.range.pressurePa[1])} Pa`,
+    uv: wx.uv.map((u) => u.toLowerCase()).join(" to "),
+  };
+  document.querySelectorAll("[data-weather]").forEach((n) => (n.textContent = vals[n.dataset.weather] ?? ""));
+  $("#weather").hidden = false;
+  drawWeatherChart();
+}
+
+function drawWeatherChart() {
+  const wx = state.weather;
+  if (!wx) return;
+  const s = wx.series;
+  lineChart($("#weather-chart"), {
+    xs: s.map((r) => r.sol), ys: s.map((r) => r.airMax), color: "#ffb27a", height: 240, yPad: 0.08, area: false,
+    lines: [
+      { ys: s.map((r) => r.airMin), color: "#5ad1ff" },
+      { ys: s.map((r) => r.groundMax), color: "#e8763b", dash: "5 3" },
+      { ys: s.map((r) => r.groundMin), color: "#8fa3ff", dash: "5 3" },
+    ],
+    xFmt: (v) => `Sol ${v}`, yFmt: (v) => `${fmt(v)}°`,
+    tipFmt: (x, y, i) => `Sol ${x} · air ${fmt(s[i].airMin)} to ${fmt(s[i].airMax)} °C · ground ${fmt(s[i].groundMin)} to ${fmt(s[i].groundMax)} °C · ${fmt(s[i].pressurePa)} Pa`,
+  });
 }
 
 function drawDoseChart() {
@@ -480,6 +536,10 @@ function renderBriefing() {
       <h4>Radiation</h4>
       <p>${fmt(w.doseUGy, 1)} µGy one way at the ${site.dose_uGy_h} µGy/h Curiosity measured here. A whole sol outside would be about ${fmt(solDose)} µGy, so time outside is what to keep short.</p>
     </div>
+    ${state.weather && w.hours > 0 ? (() => { const h = walkHeat(w), m = state.weather.mean; return `<div>
+      <h4>Weather and the suit</h4>
+      <p>REMS puts a typical afternoon here at ${fmt(m.airMax)} °C air and ${fmt(m.groundMax)} °C ground, dropping to ${fmt(m.airMin)} °C at night. Walking makes about ${fmt(h.metabolicW)} W of heat and the suit only sheds ${fmt(h.lostW)} W to the cold, so its cooling loop has to carry about ${fmt(h.rejectW)} W.</p>
+    </div>`; })() : ""}
     <div>
       <h4>The support rover</h4>
       <p>${roverOk

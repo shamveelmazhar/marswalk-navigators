@@ -1,25 +1,37 @@
 """FastAPI backend service for Marswalk Navigators.
 
 Provides endpoints for map layers, site metadata, bounds, safety limits,
-and path planning routes for Gale Crater / Mount Sharp on Mars.
+path planning routes, mission budgets, and AI mission briefings
+for Gale Crater / Mount Sharp on Mars.
 """
 import os
 import json
 import time
-from typing import Optional, Literal
-from fastapi import FastAPI, Query, HTTPException, status
+from typing import Optional, Literal, List, Dict, Any
+from fastapi import FastAPI, Query, HTTPException, status, Body
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 
 from marswalk.site import GALE_BOXWORK, xy_to_lonlat, lonlat_to_xy, MARS_RADIUS_M
 from marswalk.planner import get_default_grid, PROFILES
+from marswalk.budgets import (
+    compute_walk_budget,
+    compute_drive_budget,
+    compute_wheel_load_cases,
+    sample_path_profile,
+    RAD_MEAN_DOSE_RATE_UGY_H,
+)
+from marswalk.assistant import (
+    generate_mission_briefing,
+    find_nearby_science_stops,
+)
 
 APP_START_TIME = time.time()
 
 app = FastAPI(
     title="Marswalk Navigators API",
-    description="Backend service for Marswalk planning at Mount Sharp, Gale Crater (NASA Space Apps 2026).",
-    version="1.0.0",
+    description="Backend service for Marswalk planning, mission budgets, and AI briefings at Mount Sharp, Gale Crater (NASA Space Apps 2026).",
+    version="1.2.0",
 )
 
 # Enable CORS for frontend dashboard and local development
@@ -29,6 +41,11 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+
+class CustomPathRequest(BaseModel):
+    path: List[List[float]] = Field(..., description="Array of [latitude, longitude] waypoints")
+    agent: Optional[Literal["astronaut", "rover"]] = Field("astronaut", description="Agent type: astronaut or rover")
 
 
 def _compute_bounds_latlon(bounds_m):
@@ -61,13 +78,44 @@ def _load_site_json():
     return None
 
 
+def _calculate_budgets_for_path(path_coords: List[List[float]], max_slope: float, max_rough: float):
+    """Generate profile and calculate walk, drive, and wheel budgets along coordinates."""
+    grid = get_default_grid()
+
+    def elev_func(lat, lon):
+        r, c = grid.coord_to_cell(lat, lon)
+        if not grid.is_in_bounds(r, c) or not grid.is_valid(r, c):
+            return 0.0
+        return grid.get_elevation_bilinear(lat, lon) or float(grid.elev[r, c])
+
+    def slope_func(lat, lon):
+        r, c = grid.coord_to_cell(lat, lon)
+        return float(grid.slope[r, c]) if grid.is_in_bounds(r, c) else 0.0
+
+    def rough_func(lat, lon):
+        r, c = grid.coord_to_cell(lat, lon)
+        return (float(grid.rough[r, c]) / 10.0) if grid.is_in_bounds(r, c) else 0.0
+
+    profile = sample_path_profile(path_coords, elev_func, slope_func, rough_func, sampling_interval_m=10.0)
+    walk_b = compute_walk_budget(profile)
+    drive_b = compute_drive_budget(profile)
+    load_cs = compute_wheel_load_cases(max_slope, max_rough)
+
+    return {
+        "walk": walk_b,
+        "drive": drive_b,
+        "wheel_load_cases": load_cs,
+        "profile_points_count": len(profile),
+    }
+
+
 @app.get("/", tags=["Health"])
 def root():
     """Root entry point with service metadata and documentation links."""
     return {
         "service": "marswalk-api",
         "name": "Marswalk Navigators API",
-        "version": "1.0.0",
+        "version": "1.2.0",
         "status": "online",
         "documentation": "/docs",
         "endpoints": {
@@ -77,6 +125,8 @@ def root():
             "site": "/site",
             "limits": "/limits",
             "route": "/route",
+            "budget": "/budget",
+            "briefing": "/briefing",
         },
     }
 
@@ -95,7 +145,7 @@ def health_check():
     return {
         "status": "ok" if grid_loaded else "degraded",
         "service": "marswalk-api",
-        "version": "1.0.0",
+        "version": "1.2.0",
         "uptime_seconds": round(uptime, 2),
         "site": GALE_BOXWORK.name,
         "grid_loaded": grid_loaded,
@@ -280,6 +330,7 @@ def plan_route(
     end_lat: float = Query(..., description="Target latitude in Martian degrees"),
     end_lon: float = Query(..., description="Target longitude in Martian degrees"),
     agent: Literal["astronaut", "rover"] = Query("astronaut", description="Agent type: astronaut or rover"),
+    include_budget: bool = Query(True, description="Whether to include mission life-support and rover budgets"),
 ):
     """Path planning query endpoint finding the safest path using A* over DEM, slope, and roughness."""
     bounds = _compute_bounds_latlon(GALE_BOXWORK.bounds)
@@ -314,4 +365,119 @@ def plan_route(
         )
 
     result["source"] = "api"
+
+    if include_budget and "path" in result:
+        budgets = _calculate_budgets_for_path(
+            result["path"],
+            result.get("max_slope_deg", 0.0),
+            result.get("max_roughness_m", 0.0),
+        )
+        result["budget"] = budgets
+
     return result
+
+
+@app.get("/budget", tags=["Mission Budgets"])
+def get_mission_budget(
+    start_lat: float = Query(..., description="Starting latitude in Martian degrees"),
+    start_lon: float = Query(..., description="Starting longitude in Martian degrees"),
+    end_lat: float = Query(..., description="Target latitude in Martian degrees"),
+    end_lon: float = Query(..., description="Target longitude in Martian degrees"),
+    agent: Literal["astronaut", "rover"] = Query("astronaut", description="Agent type: astronaut or rover"),
+):
+    """Calculate detailed life-support, energy, suit thermal, rover power, and radiation budgets for a route."""
+    route_res = plan_route(
+        start_lat=start_lat,
+        start_lon=start_lon,
+        end_lat=end_lat,
+        end_lon=end_lon,
+        agent=agent,
+        include_budget=True,
+    )
+    return {
+        "ok": True,
+        "agent": agent,
+        "route_summary": {
+            "distance_m": route_res.get("route_distance_m"),
+            "direct_distance_m": route_res.get("direct_distance_m"),
+            "elevation_gain_m": route_res.get("elevation_gain_m"),
+            "elevation_loss_m": route_res.get("elevation_loss_m"),
+            "max_slope_deg": route_res.get("max_slope_deg"),
+            "mean_slope_deg": route_res.get("mean_slope_deg"),
+            "max_roughness_m": route_res.get("max_roughness_m"),
+        },
+        "budget": route_res.get("budget"),
+    }
+
+
+@app.post("/budget", tags=["Mission Budgets"])
+def compute_custom_budget(body: CustomPathRequest):
+    """Compute mission budgets for an arbitrary polyline route [[lat, lon], ...]."""
+    if len(body.path) < 2:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="At least 2 coordinate waypoints are required to compute a mission budget.",
+        )
+
+    grid = get_default_grid()
+    slopes = []
+    roughnesses = []
+    for lat, lon in body.path:
+        r, c = grid.coord_to_cell(lat, lon)
+        if grid.is_in_bounds(r, c) and grid.is_valid(r, c):
+            slopes.append(float(grid.slope[r, c]))
+            roughnesses.append(float(grid.rough[r, c]) / 10.0)
+
+    max_slope = max(slopes) if slopes else 10.0
+    max_rough = max(roughnesses) if roughnesses else 0.5
+
+    budgets = _calculate_budgets_for_path(body.path, max_slope, max_rough)
+    return {
+        "ok": True,
+        "agent": body.agent,
+        "waypoints_count": len(body.path),
+        "budget": budgets,
+    }
+
+
+@app.get("/briefing", tags=["AI Assistant"])
+def get_mission_briefing(
+    start_lat: float = Query(..., description="Starting latitude in Martian degrees"),
+    start_lon: float = Query(..., description="Starting longitude in Martian degrees"),
+    end_lat: float = Query(..., description="Target latitude in Martian degrees"),
+    end_lon: float = Query(..., description="Target longitude in Martian degrees"),
+    agent: Literal["astronaut", "rover"] = Query("astronaut", description="Agent type: astronaut or rover"),
+):
+    """Generate an astronaut-ready mission briefing with terrain hazards, PLSS budgets, and science stops."""
+    route_res = plan_route(
+        start_lat=start_lat,
+        start_lon=start_lon,
+        end_lat=end_lat,
+        end_lon=end_lon,
+        agent=agent,
+        include_budget=True,
+    )
+
+    budget_data = route_res.get("budget", {})
+    walk_b = budget_data.get("walk", {})
+    drive_b = budget_data.get("drive", {})
+    load_cs = budget_data.get("wheel_load_cases", [])
+
+    site_data = _load_site_json() or {}
+    all_stops = site_data.get("stops", [])
+    nearby_stops = find_nearby_science_stops(route_res.get("path", []), all_stops, proximity_threshold_m=400.0)
+
+    briefing = generate_mission_briefing(
+        route=route_res,
+        walk_budget=walk_b,
+        drive_budget=drive_b,
+        load_cases=load_cs,
+        nearby_stops=nearby_stops,
+    )
+
+    briefing["route"] = {
+        "direct_distance_m": route_res.get("direct_distance_m"),
+        "route_distance_m": route_res.get("route_distance_m"),
+        "path": route_res.get("path"),
+    }
+    return briefing

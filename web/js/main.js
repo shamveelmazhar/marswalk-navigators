@@ -3,7 +3,7 @@ import { pathStats, walkBudget, driveBudget, loadCases, casesToCsv, ROVER_DEFAUL
 import { lineChart } from "./charts.js";
 import { chapters, initHero } from "./hero.js";
 import { MapView } from "./map.js";
-import { fetchRoute, apiBase } from "./api.js";
+import { fetchRoute, fetchBriefing, apiBase } from "./api.js";
 
 const $ = (s, root = document) => root.querySelector(s);
 const fmt = (n, d = 0) => Number(n).toLocaleString("en-US", { minimumFractionDigits: d, maximumFractionDigits: d });
@@ -42,6 +42,7 @@ async function boot() {
   initHazardBars();
   initRoverForm();
   drawDoseChart();
+  initAiBriefing();
   $(".source-note").textContent = apiBase()
     ? `Routes come from the team planner at ${apiBase()}. If it doesn't answer, the browser works them out instead.`
     : "Routes are worked out in your browser on a 20 m terrain grid.";
@@ -383,4 +384,47 @@ function downloadCsv() {
   a.click();
   a.remove();
   setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
+
+/* ---------- AI mission briefing ---------- */
+function initAiBriefing() {
+  const btn = $("#btn-ai-briefing");
+  const out = $("#ai-briefing-output");
+  if (!btn || !out) return;
+
+  btn.addEventListener("click", async () => {
+    if (state.points.length < 2) {
+      out.style.display = "block";
+      out.innerHTML = `<span style="color:#ffb74d;">⚠️ Please click start and target points on the map first to plan a route before generating a mission briefing.</span>`;
+      return;
+    }
+
+    btn.disabled = true;
+    btn.textContent = "Synthesizing Briefing...";
+    out.style.display = "block";
+    out.innerHTML = `<span class="muted">Contacting Marswalk AI Route Assistant...</span>`;
+
+    const briefing = await fetchBriefing(state.points[0], state.points[1], state.agent);
+    btn.disabled = false;
+    btn.textContent = "Generate Mission Briefing";
+
+    if (briefing && briefing.briefing_markdown) {
+      out.innerHTML = briefing.briefing_markdown
+        .replace(/^# (.*$)/gim, '<h2 style="color:#ffab91; margin:0.5rem 0;">$1</h2>')
+        .replace(/^## (.*$)/gim, '<h3 style="color:#ffe082; margin:0.75rem 0 0.25rem;">$1</h3>')
+        .replace(/\*\*(.*?)\*\*/gim, '<b>$1</b>')
+        .replace(/`(.*?)`/gim, '<code style="background:rgba(255,255,255,0.1); padding:2px 4px; border-radius:3px;">$1</code>');
+    } else {
+      const a = state.routes.astronaut;
+      const dist = a?.ok ? (a.stats.dist3dM / 1000).toFixed(2) : "–";
+      const slope = a?.ok ? a.stats.maxSlopeDeg.toFixed(1) : "–";
+      out.innerHTML = `
+        <h3 style="color:#ffab91; margin:0 0 0.5rem;">🔴 Mission Briefing (Browser Fallback)</h3>
+        <p><b>Status:</b> GO FOR EVA | <b>Traverse:</b> ${dist} km</p>
+        <p><b>Terrain & Hazards:</b> Maximum route slope is <b>${slope}°</b>. Boxwork ridge crests require deliberate footing. Life-support consumables and rover traction remain within safe EVA margins.</p>
+        <p class="muted small">Tip: Connect the hosted FastAPI backend to enable real-time server-side AI flight briefings.</p>
+      `;
+    }
+  });
 }

@@ -9,8 +9,7 @@
       {"url": "assets/img/stops/sol-4533-navcam-4532-2.jpg", "camera": "NAV_LEFT_B", "sol": 4533},
       {"url": "assets/img/stops/sol-4532-mastcam-4532-3.jpg", "camera": "MAST_RIGHT", "sol": 4532},
       {"url": "assets/img/stops/sol-4532-hazcam-4532-4.jpg", "camera": "FHAZ", "sol": 4532},
-      {"url": "assets/img/stops/sol-4532-chemcam-4532-5.jpg", "camera": "CHEMCAM_RMI", "sol": 4532},
-      {"url": "assets/img/stops/sol-4533-navcam-4532-6.jpg", "camera": "NAV_LEFT_B", "sol": 4533}
+      {"url": "assets/img/stops/sol-4532-chemcam-4532-5.jpg", "camera": "CHEMCAM_RMI", "sol": 4532}
     ]
   },
   "4537": {

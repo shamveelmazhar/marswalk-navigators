@@ -43,7 +43,8 @@ class RoverSpecs:
     rolling_coeff: float = 0.15        # Rolling resistance on loose rock and sand
     drive_efficiency: float = 0.55     # Motor, gearbox, and drivetrain mechanical efficiency
     hotel_power_w: float = 120.0       # Avionics, comms, and active thermal loop power
-    solar_peak_power_w: float = 180.0  # Auxiliary horizontal solar array peak output (clear sky)
+    solar_average_w: float = 45.0      # Deployable auxiliary ~1 m² solar array daytime average output (45 W)
+    solar_peak_power_w: float = 180.0  # Auxiliary horizontal solar array peak output under noon clear sky
     edge_patch_mm2: float = 400.0      # Sharp bedrock contact patch (10 mm x 40 mm)
     dynamic_factor: float = 1.50       # Dynamic shock load allowance for rock strikes
 
@@ -198,7 +199,8 @@ def compute_drive_budget(
     # Solar power generation along the route:
     # Gale Crater boxwork at 4.8°S receives ~500 W/m² peak solar irradiance.
     # An auxiliary ~1 m² deployable solar panel array averages ~45 W daytime output.
-    solar_yield_wh = (rover.solar_peak_power_w * 0.40) * hours
+    # Assumption: Daytime traverse with clear sky and consistent solar incidence averaging 45.0 W.
+    solar_yield_wh = rover.solar_average_w * hours
     net_balance_wh = solar_yield_wh - total_consumed_wh
 
     return {

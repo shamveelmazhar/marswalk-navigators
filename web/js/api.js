@@ -20,7 +20,7 @@ export async function fetchRoute(start, end, agent) {
   const q = new URLSearchParams({ start_lat: start[0], start_lon: start[1], end_lat: end[0], end_lon: end[1], agent });
   try {
     const ctrl = new AbortController();
-    const t = setTimeout(() => ctrl.abort(), 8000);
+    const t = setTimeout(() => ctrl.abort(), 15000);
     const res = await fetch(`${base}/route?${q}`, { signal: ctrl.signal });
     clearTimeout(t);
     const body = await res.json().catch(() => ({}));
@@ -39,7 +39,7 @@ export async function fetchBriefing(start, end, agent = "astronaut") {
   const q = new URLSearchParams({ start_lat: start[0], start_lon: start[1], end_lat: end[0], end_lon: end[1], agent });
   try {
     const ctrl = new AbortController();
-    const t = setTimeout(() => ctrl.abort(), 8000);
+    const t = setTimeout(() => ctrl.abort(), 15000);
     const res = await fetch(`${base}/briefing?${q}`, { signal: ctrl.signal });
     clearTimeout(t);
     if (!res.ok) return null;

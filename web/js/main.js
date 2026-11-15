@@ -387,7 +387,7 @@ function downloadCsv() {
 }
 
 
-/* ---------- AI mission briefing ---------- */
+/* ---------- Mission briefing ---------- */
 function initAiBriefing() {
   const btn = $("#btn-ai-briefing");
   const out = $("#ai-briefing-output");
@@ -403,7 +403,7 @@ function initAiBriefing() {
     btn.disabled = true;
     btn.textContent = "Synthesizing Briefing...";
     out.style.display = "block";
-    out.innerHTML = `<span class="muted">Contacting Marswalk AI Route Assistant...</span>`;
+    out.innerHTML = `<span class="muted">Synthesizing Mission Briefing...</span>`;
 
     const briefing = await fetchBriefing(state.points[0], state.points[1], state.agent);
     btn.disabled = false;
@@ -416,15 +416,60 @@ function initAiBriefing() {
         .replace(/\*\*(.*?)\*\*/gim, '<b>$1</b>')
         .replace(/`(.*?)`/gim, '<code style="background:rgba(255,255,255,0.1); padding:2px 4px; border-radius:3px;">$1</code>');
     } else {
-      const a = state.routes.astronaut;
-      const dist = a?.ok ? (a.stats.dist3dM / 1000).toFixed(2) : "–";
-      const slope = a?.ok ? a.stats.maxSlopeDeg.toFixed(1) : "–";
-      out.innerHTML = `
-        <h3 style="color:#ffab91; margin:0 0 0.5rem;">🔴 Mission Briefing (Browser Fallback)</h3>
-        <p><b>Status:</b> GO FOR EVA | <b>Traverse:</b> ${dist} km</p>
-        <p><b>Terrain & Hazards:</b> Maximum route slope is <b>${slope}°</b>. Boxwork ridge crests require deliberate footing. Life-support consumables and rover traction remain within safe EVA margins.</p>
-        <p class="muted small">Tip: Connect the hosted FastAPI backend to enable real-time server-side AI flight briefings.</p>
-      `;
+      const agentKey = state.agent || "astronaut";
+      const route = state.routes[agentKey] || state.routes.astronaut;
+      if (route && route.ok && route.pts && route.pts.length > 0) {
+        const stats = route.stats;
+        const doseRate = state.site?.stats?.dose_uGy_h || 6.67;
+        const w = walkBudget(route.pts, doseRate);
+        const agentLimit = AGENTS[agentKey]?.maxSlope || 25.0;
+        const isGo = (w.hours <= EVA_HOURS) && (stats.maxSlopeDeg <= agentLimit);
+        const statusLabel = isGo ? "GO FOR EVA" : "CAUTION / CONTINGENCY REQUIRED";
+        const statusColor = isGo ? "#81c784" : "#ffb74d";
+        const distKm = (stats.dist3dM / 1000).toFixed(2);
+        const evaPct = (w.evaShare * 100).toFixed(1);
+
+        let hazardNotes = [];
+        if (stats.maxSlopeDeg > agentLimit) {
+          hazardNotes.push(`Maximum slope reaches <b>${stats.maxSlopeDeg.toFixed(1)}°</b>, exceeding the safe limit for ${agentKey} (<b>${agentLimit}°</b>).`);
+        } else if (stats.maxSlopeDeg > 15) {
+          hazardNotes.push(`Steep incline section (<b>${stats.maxSlopeDeg.toFixed(1)}°</b>) requires deliberate footing and traction control.`);
+        }
+        if (w.hours > EVA_HOURS) {
+          hazardNotes.push(`Projected duration of <b>${w.hours.toFixed(2)} h</b> exceeds the ${EVA_HOURS}.0-hour EVA suit limit.`);
+        }
+        if (!hazardNotes.length) {
+          hazardNotes.push(`Terrain slope (${stats.maxSlopeDeg.toFixed(1)}°) and surface relief remain within nominal ${agentKey} mobility margins.`);
+        }
+
+        out.innerHTML = `
+          <h3 style="color:#ffab91; margin:0 0 0.5rem;">🔴 Mission Briefing (Browser Kinematics)</h3>
+          <p><b>Status:</b> <span style="color:${statusColor}; font-weight:bold;">${statusLabel}</span> | <b>Target:</b> ${agentKey.toUpperCase()} | <b>Traverse:</b> ${distKm} km</p>
+          <div style="margin: 0.5rem 0; padding: 0.5rem 0.75rem; background: rgba(255,255,255,0.05); border-radius: 4px;">
+            <b>Life-Support & Consumables:</b>
+            <ul style="margin: 0.25rem 0 0 1.2rem; padding: 0;">
+              <li><b>Time:</b> ${w.hours.toFixed(2)} h (${evaPct}% of ${EVA_HOURS}h EVA ceiling)</li>
+              <li><b>Metabolic Energy:</b> ${Math.round(w.kcal)} kcal (${Math.round(w.kJ)} kJ)</li>
+              <li><b>Oxygen (O₂):</b> ${w.o2Kg.toFixed(2)} kg consumed</li>
+              <li><b>Radiation:</b> ${w.doseUGy.toFixed(1)} µGy absorbed (MSL RAD rate: ${doseRate} µGy/h)</li>
+            </ul>
+          </div>
+          <div style="margin: 0.5rem 0;">
+            <b>Terrain Constraints & Hazards:</b>
+            <ul style="margin: 0.25rem 0 0 1.2rem; padding: 0;">
+              ${hazardNotes.map(n => `<li>${n}</li>`).join("")}
+            </ul>
+          </div>
+          <p class="muted small" style="margin-top:0.75rem; border-top: 1px solid rgba(255,255,255,0.1); padding-top:0.5rem;">
+            ℹ️ Calculated client-side using Pandolf/Tobler physics while FastAPI backend spins up on Render.
+          </p>
+        `;
+      } else {
+        out.innerHTML = `
+          <h3 style="color:#ffab91; margin:0 0 0.5rem;">🔴 Mission Briefing</h3>
+          <p style="color:#ffb74d;">The mission briefing requires an active planned route or a responding API. Render free-tier cold starts may take 15–30 seconds to wake up; please wait a moment and try again once the route appears on the map.</p>
+        `;
+      }
     }
   });
 }

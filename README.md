@@ -2,6 +2,8 @@
 
 A route planner for the first astronauts to walk on Mars.
 
+**Live demo:** https://marswalk-navigators.vercel.app/
+
 Our team is building this for the 2026 NASA Space Apps Challenge, "Interplanetary Survival Guide: Martian Map". The idea is simple. Before a crew steps outside on Mars, they need to know which way to walk, what the ground is like, how much radiation they'll pick up, and whether their support rover can follow them. We pull real NASA data together into one map that answers those questions.
 
 We're starting at Mount Sharp in Gale Crater, where the Curiosity rover studied the "boxwork" ridges in 2025. These are low, criss-crossing walls of rock left behind by groundwater long ago, and they're the example NASA gives in the challenge itself.

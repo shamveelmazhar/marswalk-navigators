@@ -1,7 +1,7 @@
 """FastAPI backend service for Marswalk Navigators.
 
 Provides endpoints for map layers, site metadata, bounds, safety limits,
-path planning routes, mission budgets, and AI mission briefings
+path planning routes, mission budgets, and written mission briefings
 for Gale Crater / Mount Sharp on Mars.
 """
 import os
@@ -30,7 +30,7 @@ APP_START_TIME = time.time()
 
 app = FastAPI(
     title="Marswalk Navigators API",
-    description="Backend service for Marswalk planning, mission budgets, and AI briefings at Mount Sharp, Gale Crater (NASA Space Apps 2026).",
+    description="Route planning, mission budgets and mission briefings for a Marswalk at Mount Sharp, Gale Crater (NASA Space Apps 2026).",
     version="1.2.0",
 )
 
@@ -440,7 +440,7 @@ def compute_custom_budget(body: CustomPathRequest):
     }
 
 
-@app.get("/briefing", tags=["AI Assistant"])
+@app.get("/briefing", tags=["Mission Briefing"])
 def get_mission_briefing(
     start_lat: float = Query(..., description="Starting latitude in Martian degrees"),
     start_lon: float = Query(..., description="Starting longitude in Martian degrees"),
@@ -463,6 +463,28 @@ def get_mission_briefing(
     drive_b = budget_data.get("drive", {})
     load_cs = budget_data.get("wheel_load_cases", [])
 
+    # The rover drives its own route, so its budget and wheel loads come from that,
+    # not from the path the astronaut walks.
+    rover_note = None
+    if agent == "astronaut":
+        rover_res = get_default_grid().plan_path(
+            start_lat=start_lat, start_lon=start_lon, end_lat=end_lat, end_lon=end_lon, agent="rover"
+        )
+        if rover_res.get("ok") and rover_res.get("path"):
+            rover_budget = _calculate_budgets_for_path(
+                rover_res["path"],
+                rover_res.get("max_slope_deg", 0.0),
+                rover_res.get("max_roughness_m", 0.0),
+            )
+            drive_b = rover_budget["drive"]
+            load_cs = rover_budget["wheel_load_cases"]
+        else:
+            rover_note = (
+                "The rover has no safe route between these two points, so the crew member "
+                "would be walking without it. " + rover_res.get("reason", "")
+            ).strip()
+            load_cs = []
+
     site_data = _load_site_json() or {}
     all_stops = site_data.get("stops", [])
     nearby_stops = find_nearby_science_stops(route_res.get("path", []), all_stops, proximity_threshold_m=400.0)
@@ -473,6 +495,7 @@ def get_mission_briefing(
         drive_budget=drive_b,
         load_cases=load_cs,
         nearby_stops=nearby_stops,
+        rover_note=rover_note,
     )
 
     briefing["route"] = {

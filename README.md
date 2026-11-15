@@ -44,7 +44,7 @@ A few numbers to give a feel for the place: half the area is gentler than 11°, 
 
 ## The website
 
-The `web/` folder holds the site: a full-screen look at Mount Sharp, a layered map of the boxwork where you can plan a walk, and live budgets and wheel load cases for whatever route you pick. To run it:
+The `web/` folder holds the site: a full-screen look at Mount Sharp, a layered map of the boxwork where you can plan a walk, and live budgets, a written mission briefing and wheel load cases for whatever route you pick. To run it:
 
 ```
 python -m http.server 8000 --directory web
@@ -60,9 +60,23 @@ Then open http://localhost:8000. The [web README](web/README.md) explains each p
 - `marswalk/radiation.py`: reads dose rates out of the RAD files
 - `marswalk/rover.py`: Curiosity's path, stops and photos
 - `marswalk/build.py`: runs everything above in order
+- `marswalk/planner.py`: the A* route planner, with separate slope and roughness limits for the astronaut and the rover
+- `marswalk/budgets.py`: walking time, energy, oxygen and radiation for the astronaut, driving energy for the rover, and the wheel load cases
+- `marswalk/assistant.py`: writes the mission briefing for a route from those numbers
+- `marswalk/api.py`: a small FastAPI service that serves all of the above
 - `web/`: the website, with its own [README](web/README.md)
 
 Run the tests with `pytest`.
+
+## The route API
+
+The planner, budgets and briefing can also run as a web service:
+
+```bash
+uvicorn marswalk.api:app --port 8001
+```
+
+Then open http://localhost:8001/docs to try it. The main calls are `/route`, `/budget` and `/briefing`, each taking a start and end latitude and longitude. The API only needs the small terrain grid in `web/data/`, so you don't have to download the full data set first. The website works without it, because it can plan routes in the browser too.
 
 ## Where the data comes from
 

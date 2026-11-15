@@ -33,22 +33,6 @@ export async function fetchRoute(start, end, agent) {
   }
 }
 
-export async function fetchBriefing(start, end, agent = "astronaut") {
-  const base = apiBase();
-  if (!base) return null;
-  const q = new URLSearchParams({ start_lat: start[0], start_lon: start[1], end_lat: end[0], end_lon: end[1], agent });
-  try {
-    const ctrl = new AbortController();
-    const t = setTimeout(() => ctrl.abort(), 15000);
-    const res = await fetch(`${base}/briefing?${q}`, { signal: ctrl.signal });
-    clearTimeout(t);
-    if (!res.ok) return null;
-    return await res.json();
-  } catch {
-    return null;
-  }
-}
-
 function toLatLngs(body) {
   if (Array.isArray(body?.path)) return body.path.map((p) => [p[0], p[1]]);
   const geom = body?.type === "Feature" ? body.geometry : body;

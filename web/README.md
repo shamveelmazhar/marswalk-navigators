@@ -17,7 +17,7 @@ Then open http://localhost:8000.
 1. **Mount Sharp.** A full-screen opening with four chapters (the mountain, the boxwork ridges, radiation and the rover). The arrows on the right, the tabs, or a swipe on a phone step through them. Each chapter has its own strip of numbers taken straight from our data.
 2. **Field map.** A Leaflet map with the HiRISE photo, shaded terrain, slope, a go / caution / no-go hazard layer, THEMIS night infrared and Curiosity's radiation readings. Click two points and the page plans a route for an astronaut and for the support rover, with a height profile. Below the map are eight of Curiosity's real stops from the 2025 boxwork campaign, each with the rover's own photos.
 3. **Route planning.** How the planner works and how much of the area falls into each hazard class. It also runs Curiosity's actual path through the same rules as a sanity check.
-4. **Mission budgets.** Walking time, distance, energy, oxygen and radiation dose for the astronaut, and distance, energy and time for the rover. These update with whatever route is on the map.
+4. **Mission budgets.** Walking time, distance, energy, oxygen and radiation dose for the astronaut, and distance, energy and time for the rover. These update with whatever route is on the map. Below them, a short mission briefing puts the same numbers into words, flags the steepest and roughest stretches, and lists the Curiosity stops the walk passes.
 5. **Rover load cases.** The worst slope and roughness on the rover's route turned into five load cases for one wheel, ready to apply in Ansys or SolidWorks. The rover numbers can be edited, and the table downloads as a CSV.
 6. **Data and credits.**
 

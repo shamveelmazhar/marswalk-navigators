@@ -423,6 +423,13 @@ h2 {
 }
 .budget:nth-child(4n + 1) { border-left: 0; }
 .budget:nth-child(n + 5) { border-top: 1px solid var(--line); }
+/* with the weather loaded there are nine cards, which sit better three across */
+@media (min-width: 1181px) {
+  .budget-grid.three { grid-template-columns: repeat(3, 1fr); }
+  .budget-grid.three .budget:nth-child(4n + 1) { border-left: 1px solid var(--line-strong); }
+  .budget-grid.three .budget:nth-child(3n + 1) { border-left: 0; }
+  .budget-grid.three .budget:nth-child(n + 4) { border-top: 1px solid var(--line); }
+}
 .budget dt { text-transform: uppercase; letter-spacing: 0.12em; font-size: 0.64rem; color: var(--ink-2); }
 .budget dd { margin: 0; }
 .budget .big {
@@ -436,6 +443,9 @@ h2 {
 .meter.over i { background: var(--nogo); }
 .dose-block { display: grid; grid-template-columns: minmax(0, 0.8fr) minmax(0, 1.2fr); gap: clamp(24px, 4vw, 64px); margin-top: clamp(40px, 6vw, 72px); align-items: center; }
 .dose-block p { max-width: 52ch; }
+.weather-block { margin-top: clamp(32px, 5vw, 56px); }
+.weather-keys { margin-top: 16px; display: grid; grid-template-columns: repeat(2, minmax(0, max-content)); column-gap: 20px; }
+.weather-keys i.line { width: 18px; }
 
 /* ---------- FEA ---------- */
 .fea { overflow: hidden; }

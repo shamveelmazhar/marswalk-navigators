@@ -153,3 +153,23 @@ export function casesToCsv(cases, stats, rover) {
   ];
   return [...meta, head, ...rows].join("\n");
 }
+
+// Suit heat balance against the weather REMS measured. A walking crew member
+// makes far more heat than the suit loses to the cold, so the backpack has to
+// carry the rest away. At 7 mbar the air barely conducts, so we count only
+// radiation: half the suit sees the ground, half sees the sky, and we use the
+// daytime air temperature as a stand-in for the sky (the real sky is colder,
+// so this is a slight underestimate of what the suit sheds on its own).
+export const SUIT_THERMAL = {
+  areaM2: 2.0,        // outer surface of a suit, assumed
+  emissivity: 0.8,    // fabric outer layer, assumed
+  surfaceC: 10,       // outer layer temperature, assumed
+};
+const SIGMA = 5.67e-8;
+const K = (c) => c + 273.15;
+
+export function suitHeat(metabolicW, airC, groundC, suit = SUIT_THERMAL) {
+  const env4 = 0.5 * K(groundC) ** 4 + 0.5 * K(airC) ** 4;
+  const lostW = suit.emissivity * SIGMA * suit.areaM2 * (K(suit.surfaceC) ** 4 - env4);
+  return { metabolicW, lostW, rejectW: metabolicW - lostW };
+}

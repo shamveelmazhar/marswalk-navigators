@@ -18,7 +18,7 @@ function niceTicks(min, max, count = 4) {
   return ticks;
 }
 
-export function lineChart(container, { xs, ys, color = "#fff", height = 160, xFmt = String, yFmt = String, tipFmt, markers = [], yPad = 0.08, area = true, emptyText = "Nothing to show yet." }) {
+export function lineChart(container, { xs, ys, color = "#fff", height = 160, xFmt = String, yFmt = String, tipFmt, markers = [], yPad = 0.08, area = true, lines = [], emptyText = "Nothing to show yet." }) {
   container.innerHTML = "";
   if (!xs.length) {
     container.innerHTML = `<div class="chart-empty">${emptyText}</div>`;
@@ -28,7 +28,9 @@ export function lineChart(container, { xs, ys, color = "#fff", height = 160, xFm
   const H = height;
   const m = { t: 10, r: 10, b: 22, l: 44 };
   const x0 = Math.min(...xs), x1 = Math.max(...xs);
-  let y0 = Math.min(...ys), y1 = Math.max(...ys);
+  // extra series share the x values and the y axis: [{ ys, color, dash }]
+  const allY = ys.concat(...lines.map((l) => l.ys));
+  let y0 = Math.min(...allY), y1 = Math.max(...allY);
   const pad = (y1 - y0 || 1) * yPad;
   y0 -= pad; y1 += pad;
   const sx = (v) => m.l + ((v - x0) / (x1 - x0 || 1)) * (W - m.l - m.r);
@@ -49,6 +51,10 @@ export function lineChart(container, { xs, ys, color = "#fff", height = 160, xFm
   const d = xs.map((x, i) => `${i ? "L" : "M"}${sx(x).toFixed(1)},${sy(ys[i]).toFixed(1)}`).join("");
   if (area) el("path", { class: "area", d: `${d}L${sx(x1)},${H - m.b}L${sx(x0)},${H - m.b}Z`, fill: color }, svg);
   el("path", { class: "series", d, stroke: color }, svg);
+  for (const l of lines) {
+    const ld = xs.map((x, i) => `${i ? "L" : "M"}${sx(x).toFixed(1)},${sy(l.ys[i]).toFixed(1)}`).join("");
+    el("path", { class: "series", d: ld, stroke: l.color, ...(l.dash ? { "stroke-dasharray": l.dash } : {}) }, svg);
+  }
 
   for (const mk of markers) {
     el("circle", { class: "marker", cx: sx(mk.x), cy: sy(mk.y), r: 5, fill: mk.color || color }, svg);

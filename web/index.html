@@ -197,6 +197,19 @@
     </div>
     <div class="chart" id="dose-chart"></div>
   </div>
+  <div class="dose-block weather-block" id="weather" hidden>
+    <div>
+      <h3 class="panel-title">Weather on the same sols</h3>
+      <p class="muted">Curiosity's REMS weather station reported every sol from <span data-weather="sols"></span>. Daytime air peaked around <span data-weather="airMax"></span> and nights fell to about <span data-weather="airMin"></span>. The ground swings further than the air, from <span data-weather="groundMin"></span> before dawn to <span data-weather="groundMax"></span> in the afternoon. Pressure sat between <span data-weather="pressure"></span>, under 1% of Earth's, and the sky was clear on every sol with <span data-weather="uv"></span> UV. These temperatures feed the suit cooling budget above. REMS has stopped reporting humidity and wind, so we leave those out.</p>
+      <ul class="legend-keys weather-keys">
+        <li><i class="line" style="background:#ffb27a"></i>Air, daily high</li>
+        <li><i class="line" style="background:#5ad1ff"></i>Air, daily low</li>
+        <li><i class="line" style="background:repeating-linear-gradient(90deg,#e8763b 0 5px,transparent 5px 8px)"></i>Ground, daily high</li>
+        <li><i class="line" style="background:repeating-linear-gradient(90deg,#8fa3ff 0 5px,transparent 5px 8px)"></i>Ground, daily low</li>
+      </ul>
+    </div>
+    <div class="chart" id="weather-chart"></div>
+  </div>
 </section>
 
 <!-- 05 FEA ------------------------------------------------------------ -->
@@ -231,6 +244,7 @@
     <article><h4>Surface photo</h4><p>The matching HiRISE image at 1 m per pixel, lined up with the elevation model.</p></article>
     <article><h4>Night infrared</h4><p>THEMIS on Mars Odyssey, 100 m per pixel. Rock holds heat after sunset, so warm areas at night are firm ground and cold areas are loose sand.</p></article>
     <article><h4>Radiation</h4><p>Curiosity's RAD instrument, sols 4489 to 4612, from NASA's Planetary Data System.</p></article>
+    <article><h4>Weather</h4><p>Curiosity's REMS station, daily highs and lows for sols 4489 to 4612, from the REMS team at Centro de Astrobiología (CAB) through NASA's Mars weather feed.</p></article>
     <article><h4>Rover path and photos</h4><p>Curiosity's traverse and waypoints, and its raw Mastcam and Navcam images from sols 4530 to 4600.</p></article>
     <article><h4>Photography</h4><p>Mount Sharp (PIA19912), boxwork postcard (PIA26680), Curiosity from orbit (PIA21710) and the Mojave self-portrait (PIA19142). NASA/JPL-Caltech/MSSS and University of Arizona. NASA images are public domain.</p></article>
   </div>

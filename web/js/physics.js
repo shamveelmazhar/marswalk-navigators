@@ -20,7 +20,7 @@ export const ROVER_DEFAULTS = {
   cgHeightM: 0.9,       // assumed
   trackM: 2.3,          // assumed distance between left and right wheels
   dynamicFactor: 1.5,   // assumed allowance for bumps while driving
-  speedMs: 0.1,         // assumed crew-support pace (Curiosity tops out at 0.04)
+  speedMs: 0.5,         // assumed crew-support pace, 1.8 km/h (Curiosity tops out at 0.04)
   rollingCoeff: 0.15,   // assumed for loose rock and sand
   driveEfficiency: 0.55,// motors and gearboxes, assumed
   hotelW: 120,          // avionics and heaters while driving, assumed

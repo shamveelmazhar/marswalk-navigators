@@ -39,7 +39,7 @@ class RoverSpecs:
     wheel_radius_m: float = 0.25       # 50 cm diameter wheels
     cg_height_m: float = 0.90
     track_width_m: float = 2.30
-    speed_ms: float = 0.10             # Nominal traverse speed (0.36 km/h)
+    speed_ms: float = 0.50             # Crew-support pace (1.8 km/h), so the rover can shadow a walk within one EVA
     rolling_coeff: float = 0.15        # Rolling resistance on loose rock and sand
     drive_efficiency: float = 0.55     # Motor, gearbox, and drivetrain mechanical efficiency
     hotel_power_w: float = 120.0       # Avionics, comms, and active thermal loop power

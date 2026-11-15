@@ -40,7 +40,7 @@ Here's what you get:
 
 All the maps share one Mars map grid (equirectangular, Mars radius 3,396,190 m), so they stack without any reprojecting.
 
-A few numbers to give a feel for the place: half the area is gentler than 11°, but about a third of it is steeper than 15°, so route choice really matters. The radiation dose works out to about 0.16 milligray per sol.
+A few numbers to give a feel for the place: half the area is gentler than 11°, but about a third of it is steeper than 15°, so route choice really matters. The radiation dose works out to about 0.16 milligray per sol. Since RAD measures it on the ground, that figure already includes whatever shielding the thin Martian atmosphere gives.
 
 ## The website
 
@@ -87,6 +87,10 @@ All of it is public NASA and USGS data:
 - Curiosity's traverse and waypoints from NASA's [mission map](https://mars.nasa.gov/maps/location/?mission=Curiosity)
 - Curiosity raw images from the [NASA raw image site](https://mars.nasa.gov/msl/multimedia/raw-images/)
 - RAD radiation data from the [Planetary Data System](https://pds-ppi.igpp.ucla.edu/data/MSL-M-RAD-3-RDR-V1.0/)
+
+## What's next
+
+The challenge asks for topographic, thermal and atmospheric data. We have the first two in detail, and the atmosphere shows up through the RAD dose, which is measured under it. The next layer we want is weather from Curiosity's REMS station: air temperature, pressure, dust and wind for the same sols. That would let us flag cold or dusty days and work suit heating and the rover's solar power into the plan.
 
 ## Tools we used
 

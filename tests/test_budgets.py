@@ -64,7 +64,8 @@ def test_compute_drive_budget():
     assert budget["duration_hours"] > 0.0
     assert budget["motion_energy_wh"] > 0.0
     assert budget["hotel_energy_wh"] > 0.0
-    assert budget["total_energy_wh"] == budget["motion_energy_wh"] + budget["hotel_energy_wh"]
+    # Each figure is rounded to 0.1 Wh on its own, so allow that much slack.
+    assert budget["total_energy_wh"] == pytest.approx(budget["motion_energy_wh"] + budget["hotel_energy_wh"], abs=0.11)
     assert budget["solar_yield_wh"] > 0.0
 
 

@@ -13,3 +13,6 @@ data/
 .vscode/
 .idea/
 .DS_Store
+
+# The website's small, pre-built data files are checked in on purpose
+!web/data/

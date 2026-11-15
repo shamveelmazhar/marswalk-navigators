@@ -40,6 +40,16 @@ All the maps share one Mars map grid (equirectangular, Mars radius 3,396,190 m),
 
 A few numbers to give a feel for the place: half the area is gentler than 11°, but about a third of it is steeper than 15°, so route choice really matters. The radiation dose works out to about 0.16 milligray per sol.
 
+## The website
+
+The `web/` folder holds the site: a full-screen look at Mount Sharp, a layered map of the boxwork where you can plan a walk, and live budgets and wheel load cases for whatever route you pick. To run it:
+
+```
+python -m http.server 8000 --directory web
+```
+
+Then open http://localhost:8000. The [web README](web/README.md) explains each part and how to rebuild its data.
+
 ## Code layout
 
 - `marswalk/site.py`: the site boundaries, the data sources, and conversion between latitude/longitude and map coordinates
@@ -48,6 +58,7 @@ A few numbers to give a feel for the place: half the area is gentler than 11°, 
 - `marswalk/radiation.py`: reads dose rates out of the RAD files
 - `marswalk/rover.py`: Curiosity's path, stops and photos
 - `marswalk/build.py`: runs everything above in order
+- `web/`: the website, with its own [README](web/README.md)
 
 Run the tests with `pytest`.
 
